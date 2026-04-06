@@ -1,0 +1,27 @@
+{
+  "name": "electra-installer",
+  "version": "1.0.0",
+  "description": "Electra installer",
+  "main": "main.js",
+  "author": "slimeryt",
+  "scripts": {
+    "build": "node build-win.js --win --x64"
+  },
+  "build": {
+    "appId": "com.electra.installer",
+    "productName": "Electra Installer",
+    "directories": { "output": "release" },
+    "files": ["main.js", "installer.html"],
+    "win": {
+      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "artifactName": "ElectraInstaller.exe"
+    },
+    "portable": { "splashImage": null },
+    "nsis": {},
+    "beforePack": "./beforePack.js"
+  },
+  "devDependencies": {
+    "electron": "30.5.1",
+    "electron-builder": "^24.13.3"
+  }
+}

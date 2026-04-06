@@ -1,0 +1,92 @@
+{
+  "name": "@cord/desktop",
+  "version": "1.0.0",
+  "description": "Electra desktop app",
+  "author": "slimeryt",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "concurrently \"tsc -w -p tsconfig.json\" \"wait-on tcp:5173 && electron .\"",
+    "build": "node build-win.js",
+    "typecheck": "node tsc-run.js --noEmit",
+    "pack": "node build-win.js --dir"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "7zip-bin": "^5.2.0",
+    "concurrently": "^8.2.0",
+    "electron": "30.5.1",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.4.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.electra.app",
+    "productName": "Electra",
+    "copyright": "Copyright © 2024 slimeryt",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "slimeryt",
+      "repo": "Electra",
+      "releaseType": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "../frontend/dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "frontend"
+      },
+      {
+        "from": "src/splash.html",
+        "to": "splash.html"
+      }
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.social-networking",
+      "darkModeSupport": true
+    },
+    "win": {
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Electra-win32-x64.zip"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Network"
+    },
+    "npmRebuild": false,
+    "beforePack": "./scripts/beforePack.js"
+  }
+}

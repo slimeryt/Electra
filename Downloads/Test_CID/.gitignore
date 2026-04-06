@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+*.db
+*.db-shm
+*.db-wal
+packages/backend/src/uploads/
+packages/desktop/release/
+packages/installer/release/
+packages/installer/node_modules/
+.turbo/

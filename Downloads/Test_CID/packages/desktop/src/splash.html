@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Electra</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #08080f;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+      -webkit-app-region: drag;
+      position: relative;
+    }
+
+    /* ── Background orbs ───────────────────────────── */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      pointer-events: none;
+    }
+    .orb-1 {
+      width: 220px; height: 220px;
+      background: radial-gradient(circle, rgba(88,101,242,0.35) 0%, transparent 70%);
+      top: -60px; left: -60px;
+      animation: drift1 6s ease-in-out infinite;
+    }
+    .orb-2 {
+      width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(120,90,255,0.22) 0%, transparent 70%);
+      bottom: -40px; right: -40px;
+      animation: drift2 8s ease-in-out infinite;
+    }
+    .orb-3 {
+      width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(88,101,242,0.18) 0%, transparent 70%);
+      bottom: 60px; left: 20px;
+      animation: drift3 7s ease-in-out infinite;
+    }
+
+    @keyframes drift1 {
+      0%,100% { transform: translate(0,0) scale(1); }
+      50%      { transform: translate(20px,15px) scale(1.08); }
+    }
+    @keyframes drift2 {
+      0%,100% { transform: translate(0,0) scale(1); }
+      50%      { transform: translate(-15px,-20px) scale(1.06); }
+    }
+    @keyframes drift3 {
+      0%,100% { transform: translate(0,0); }
+      50%      { transform: translate(12px,-18px); }
+    }
+
+    /* ── Card ──────────────────────────────────────── */
+    .card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 36px 40px 32px;
+      background: rgba(14, 14, 24, 0.85);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 24px;
+      box-shadow:
+        0 24px 64px rgba(0,0,0,0.7),
+        0 0 0 1px rgba(88,101,242,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      animation: floatCard 4s ease-in-out infinite;
+    }
+
+    @keyframes floatCard {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-5px); }
+    }
+
+    /* ── Logo ──────────────────────────────────────── */
+    .logo {
+      width: 76px; height: 76px;
+      background: linear-gradient(135deg, #4f5ce0 0%, #7983f5 50%, #8b7cf8 100%);
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+      box-shadow:
+        0 8px 32px rgba(88,101,242,0.55),
+        0 0 0 1px rgba(255,255,255,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+      animation: logoPulse 3s ease-in-out infinite;
+    }
+    @keyframes logoPulse {
+      0%,100% { box-shadow: 0 8px 32px rgba(88,101,242,0.55), 0 0 0 1px rgba(255,255,255,0.12), inset 0 1px 0 rgba(255,255,255,0.2); }
+      50%      { box-shadow: 0 12px 48px rgba(88,101,242,0.75), 0 0 0 1px rgba(255,255,255,0.16), inset 0 1px 0 rgba(255,255,255,0.2); }
+    }
+    .logo svg { width: 44px; height: 44px; fill: white; }
+
+    /* ── Text ──────────────────────────────────────── */
+    .app-name {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      background: linear-gradient(135deg, #fff 30%, rgba(255,255,255,0.7));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+
+    .status {
+      font-size: 11.5px;
+      color: rgba(255,255,255,0.38);
+      margin-bottom: 26px;
+      letter-spacing: 0.4px;
+      min-height: 16px;
+      transition: opacity 0.3s ease;
+    }
+
+    /* ── Progress ──────────────────────────────────── */
+    .progress-track {
+      width: 160px; height: 2.5px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 99px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #4752c4, #7983f5, #a78bfa);
+      border-radius: 99px;
+      transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    /* Shimmer on the bar */
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 40px; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+      animation: shimmer 1.5s ease-in-out infinite;
+    }
+    @keyframes shimmer {
+      0%   { transform: translateX(-40px); opacity: 0; }
+      40%  { opacity: 1; }
+      100% { transform: translateX(20px); opacity: 0; }
+    }
+
+    /* ── Version ───────────────────────────────────── */
+    .version {
+      position: absolute;
+      bottom: 14px;
+      font-size: 10px;
+      color: rgba(255,255,255,0.15);
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Background orbs -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <!-- Floating glass card -->
+  <div class="card">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.015.043.033.055a19.877 19.877 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+      </svg>
+    </div>
+
+    <div class="app-name">Electra</div>
+    <div class="status" id="status">Starting...</div>
+
+    <div class="progress-track">
+      <div class="progress-bar" id="progress"></div>
+    </div>
+  </div>
+
+  <div class="version">v1.0.0</div>
+
+  <script>
+    const bar = document.getElementById('progress');
+    const status = document.getElementById('status');
+
+    const steps = [
+      { pct: 18,  label: 'Loading resources...' },
+      { pct: 42,  label: 'Connecting...' },
+      { pct: 68,  label: 'Almost there...' },
+      { pct: 88,  label: 'Almost there...' },
+    ];
+
+    let i = 0;
+    function tick() {
+      if (i >= steps.length) return;
+      bar.style.width = steps[i].pct + '%';
+      status.style.opacity = '0';
+      setTimeout(() => {
+        status.textContent = steps[i].label;
+        status.style.opacity = '1';
+      }, 150);
+      i++;
+      setTimeout(tick, 480 + Math.random() * 280);
+    }
+    setTimeout(tick, 300);
+  </script>
+</body>
+</html>
