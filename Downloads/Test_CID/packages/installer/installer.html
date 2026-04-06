@@ -75,8 +75,15 @@
 
     .error {
       display:none; font-size:11px; color:#f04747; text-align:center;
-      max-width:180px; line-height:1.5; margin-top:10px;
+      max-width:180px; line-height:1.5; margin-top:10px; word-break:break-word;
     }
+    .close-btn {
+      display:none; margin-top:14px; padding:6px 20px;
+      background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12);
+      border-radius:8px; color:rgba(255,255,255,0.6); font-size:12px;
+      cursor:pointer; transition:background .2s;
+    }
+    .close-btn:hover { background:rgba(255,255,255,0.13); }
     .version { position:absolute; bottom:14px; font-size:10px; color:rgba(255,255,255,.15); letter-spacing:.5px; }
   </style>
 </head>
@@ -96,6 +103,7 @@
       <div class="progress-bar" id="progress"></div>
     </div>
     <div class="error" id="error"></div>
+    <button class="close-btn" id="closeBtn" onclick="window.close()">Close</button>
   </div>
   <div class="version" id="version">Installer</div>
 
@@ -115,6 +123,7 @@
     function showError(msg) {
       errorEl.textContent = msg;
       errorEl.style.display = 'block';
+      document.getElementById('closeBtn').style.display = 'block';
     }
 
     // Listen for progress events from main process
