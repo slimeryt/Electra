@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, session, Menu, protocol, Tray, nativeImage, dialog } from 'electron';
+import { app, BrowserWindow, shell, session, Menu, protocol, Tray, nativeImage, dialog, desktopCapturer } from 'electron';
 import path from 'path';
 import zlib from 'zlib';
 import { autoUpdater } from 'electron-updater';
@@ -310,6 +310,19 @@ function createMainWindow() {
   session.defaultSession.setPermissionCheckHandler((_wc, permission) => {
     const allowed = ['media', 'display-capture', 'mediaKeySystem', 'fullscreen'];
     return allowed.includes(permission);
+  });
+
+  // Required in Electron 22+ — without this, getDisplayMedia() is silently rejected
+  // even if setPermissionRequestHandler grants 'display-capture'.
+  session.defaultSession.setDisplayMediaRequestHandler(async (_request, callback) => {
+    try {
+      const sources = await desktopCapturer.getSources({ types: ['screen', 'window'] });
+      // Return the first screen source; the renderer's getDisplayMedia constraints
+      // (frameRate, width, height) are applied by Electron automatically.
+      callback({ video: sources[0], audio: 'loopback' });
+    } catch {
+      callback({});
+    }
   });
 }
 

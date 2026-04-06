@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import { MessageList } from '../components/chat/MessageList';
 import { MessageInput } from '../components/chat/MessageInput';
 import { useMessages } from '../hooks/useMessages';
-import { channelsApi } from '../api/channels';
 import { useChannelStore } from '../store/channelStore';
 import { getSocket } from '../socket/client';
 
@@ -59,8 +58,13 @@ export default function ChannelPage() {
     };
   }, [channelId]);
 
-  const handleSend = async (content: string, fileIds: string[]) => {
-    await channelsApi.sendMessage(channelId!, content, fileIds);
+  const handleSend = (content: string, fileIds: string[]): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      getSocket().emit('send_message', { channel_id: channelId, content, file_ids: fileIds }, (res: any) => {
+        if (res?.ok) resolve();
+        else reject(new Error(res?.error || 'Failed to send'));
+      });
+    });
   };
 
   return (

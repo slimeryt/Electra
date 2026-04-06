@@ -58,8 +58,13 @@ export default function DMPage() {
     };
   }, [dmId]);
 
-  const handleSend = async (content: string, fileIds: string[]) => {
-    await dmsApi.sendMessage(dmId!, content, fileIds);
+  const handleSend = (content: string, fileIds: string[]): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      getSocket().emit('send_dm', { dm_id: dmId, content, file_ids: fileIds }, (res: any) => {
+        if (res?.ok) resolve();
+        else reject(new Error(res?.error || 'Failed to send'));
+      });
+    });
   };
 
   return (
