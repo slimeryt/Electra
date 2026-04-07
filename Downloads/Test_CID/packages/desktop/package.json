@@ -1,6 +1,6 @@
 {
   "name": "@cord/desktop",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Electra desktop app",
   "author": "slimeryt",
   "main": "dist/main.js",
@@ -68,10 +68,6 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
-        },
-        {
-          "target": "zip",
           "arch": ["x64"]
         }
       ]
