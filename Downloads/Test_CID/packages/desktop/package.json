@@ -1,6 +1,6 @@
 {
   "name": "@cord/desktop",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Electra desktop app",
   "author": "slimeryt",
   "main": "dist/main.js",
@@ -82,7 +82,8 @@
       "runAfterFinish": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "artifactName": "ElectraSetup.exe"
+      "artifactName": "ElectraInstaller.exe",
+      "include": "scripts/install-dir.nsh"
     },
     "linux": {
       "target": [

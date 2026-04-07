@@ -1,11 +1,18 @@
 import { app, BrowserWindow, shell, session, Menu, protocol, Tray, nativeImage, dialog, desktopCapturer } from 'electron';
 import path from 'path';
+import os from 'os';
 import zlib from 'zlib';
 import { autoUpdater } from 'electron-updater';
 import { registerIpcHandlers } from './ipc/handlers';
 
 // @ts-ignore
 import Store from 'electron-store';
+
+// ─── User data paths ─────────────────────────────────────────────────────────
+// Store all user data in C:\Users\<username>\Electra\Data (visible, not hidden in AppData)
+const userDataPath = path.join(os.homedir(), 'Electra', 'Data');
+app.setPath('userData', userDataPath);
+app.setPath('logs', path.join(os.homedir(), 'Electra', 'Logs'));
 
 interface WindowState {
   width: number;
