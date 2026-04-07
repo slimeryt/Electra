@@ -46,15 +46,16 @@ export function ParticipantTile({ participant, isLocal, localStream }: Participa
   return (
     <div style={{
       position: 'relative',
-      background: 'var(--bg-elevated)',
-      border: `2px solid ${speaking ? 'var(--success)' : 'var(--border)'}`,
+      background: 'linear-gradient(160deg, var(--bg-elevated) 0%, var(--bg-overlay) 100%)',
+      border: `1.5px solid ${speaking ? 'var(--success)' : 'var(--border)'}`,
       borderRadius: 'var(--radius-lg)',
       overflow: 'hidden',
       aspectRatio: '16/9',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      transition: 'border-color 0.1s',
+      transition: 'border-color 120ms',
+      boxShadow: speaking ? '0 0 0 3px rgba(34,197,94,0.20)' : 'var(--shadow-md)',
     }}>
       {showVideo ? (
         <video
@@ -113,16 +114,20 @@ export function ParticipantTile({ participant, isLocal, localStream }: Participa
         pointerEvents: 'none',
       }}>
         <span style={{
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(4px)',
-          padding: '3px 8px',
+          background: 'rgba(0,0,0,0.72)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          padding: '4px 9px',
           borderRadius: 'var(--radius-sm)',
-          fontSize: 12,
-          color: '#fff',
-          fontWeight: 500,
+          fontSize: 11.5,
+          color: 'rgba(255,255,255,0.92)',
+          fontWeight: 600,
+          fontFamily: 'var(--font-heading)',
           display: 'flex',
           alignItems: 'center',
           gap: 5,
+          letterSpacing: '0.01em',
         }}>
           {participant.user?.display_name || 'User'}
           {isLocal && <span style={{ opacity: 0.6 }}> (you)</span>}
@@ -151,7 +156,7 @@ export function ParticipantTile({ participant, isLocal, localStream }: Participa
           position: 'absolute',
           inset: 0,
           borderRadius: 'inherit',
-          boxShadow: 'inset 0 0 0 2px var(--success)',
+          boxShadow: 'inset 0 0 0 2px var(--success), inset 0 0 20px rgba(34,197,94,0.08)',
           pointerEvents: 'none',
         }} />
       )}

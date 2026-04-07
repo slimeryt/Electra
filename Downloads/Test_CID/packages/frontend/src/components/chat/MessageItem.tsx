@@ -114,10 +114,11 @@ export function MessageItem({ message, isGrouped = false, isDm = false }: Messag
       style={{
         display: 'flex',
         gap: 12,
-        padding: `${isGrouped ? 1 : 8}px 16px`,
+        padding: `${isGrouped ? 2 : 10}px 16px`,
         position: 'relative',
-        background: hovered ? 'rgba(255,255,255,0.02)' : 'transparent',
-        transition: 'background 0.1s',
+        background: hovered ? 'rgba(255,255,255,0.025)' : 'transparent',
+        transition: 'background 120ms',
+        borderRadius: 'var(--radius-sm)',
       }}
     >
       {/* Avatar or timestamp spacer */}
@@ -145,10 +146,10 @@ export function MessageItem({ message, isGrouped = false, isDm = false }: Messag
             gap: 8,
             marginBottom: 2,
           }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+            <span style={{ fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>
               {author?.display_name || 'Unknown'}
             </span>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.01em' }}>
               {formatTime(message.created_at)}
             </span>
             {(message as any).edited_at && (
@@ -217,16 +218,17 @@ export function MessageItem({ message, isGrouped = false, isDm = false }: Messag
       {hovered && !isEditing && (
         <div style={{
           position: 'absolute',
-          right: 16,
+          right: 14,
           top: '50%',
           transform: 'translateY(-50%)',
           display: 'flex',
           gap: 2,
           background: 'var(--bg-elevated)',
-          border: '1px solid var(--border)',
+          border: '1px solid var(--border-strong)',
           borderRadius: 'var(--radius-md)',
           padding: '2px 4px',
-          boxShadow: 'var(--shadow-md)',
+          boxShadow: 'var(--shadow-lg)',
+          zIndex: 'var(--z-dropdown)',
         }}>
           <ActionBtn onClick={() => { setEditContent(message.content || ''); setIsEditing(true); }}>
             <Pencil size={14} />

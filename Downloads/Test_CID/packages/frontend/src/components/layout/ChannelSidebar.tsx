@@ -90,20 +90,22 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
       <div
         style={{
           padding: '0 14px',
-          height: 50,
+          height: 52,
           borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           cursor: 'pointer',
           flexShrink: 0,
-          transition: 'var(--transition)',
+          transition: 'background var(--transition)',
+          background: 'linear-gradient(180deg, rgba(88,101,242,0.06) 0%, transparent 100%)',
         }}
-        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        onMouseEnter={e => e.currentTarget.style.background = 'linear-gradient(180deg, rgba(88,101,242,0.11) 0%, rgba(88,101,242,0.03) 100%)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'linear-gradient(180deg, rgba(88,101,242,0.06) 0%, transparent 100%)'}
       >
         <span style={{
           fontWeight: 700, fontSize: 14,
+          fontFamily: 'var(--font-heading)',
           color: 'var(--text-primary)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           letterSpacing: '0.01em',
@@ -164,10 +166,10 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
                     borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
                     background: isActive
-                      ? 'linear-gradient(135deg, rgba(88,101,242,0.2) 0%, rgba(88,101,242,0.1) 100%)'
+                      ? 'linear-gradient(135deg, rgba(88,101,242,0.22) 0%, rgba(124,58,237,0.10) 100%)'
                       : 'transparent',
                     color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    boxShadow: isActive ? '0 0 0 1px rgba(88,101,242,0.25), inset 0 0 20px rgba(88,101,242,0.05)' : 'none',
+                    boxShadow: isActive ? '0 0 0 1px rgba(88,101,242,0.28), inset 0 0 24px rgba(88,101,242,0.06)' : 'none',
                     transition: 'all var(--transition)',
                     userSelect: 'none',
                   }}

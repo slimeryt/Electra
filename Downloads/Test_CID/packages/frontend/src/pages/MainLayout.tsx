@@ -25,9 +25,9 @@ export default function MainLayout() {
       /* Atmospheric background — panels float above this */
       background: 'var(--bg-base)',
       backgroundImage: [
-        'radial-gradient(ellipse 70% 55% at 12% 65%, rgba(88,101,242,0.07) 0%, transparent 55%)',
-        'radial-gradient(ellipse 55% 40% at 88% 18%, rgba(88,101,242,0.045) 0%, transparent 50%)',
-        'radial-gradient(ellipse 45% 55% at 50% 105%, rgba(88,101,242,0.05) 0%, transparent 60%)',
+        'radial-gradient(ellipse 80% 60% at 10% 70%, rgba(88,101,242,0.09) 0%, transparent 55%)',
+        'radial-gradient(ellipse 60% 45% at 90% 15%, rgba(124,58,237,0.07) 0%, transparent 50%)',
+        'radial-gradient(ellipse 50% 60% at 50% 110%, rgba(88,101,242,0.07) 0%, transparent 60%)',
       ].join(', '),
       padding: 8,
       gap: 6,

@@ -211,11 +211,12 @@ export function MessageInput({
         display: 'flex',
         alignItems: 'flex-end',
         gap: 8,
-        background: isDragOver ? 'rgba(88,101,242,0.08)' : 'var(--bg-overlay)',
-        border: `1px solid ${isDragOver ? 'var(--accent)' : 'var(--border)'}`,
+        background: isDragOver ? 'rgba(88,101,242,0.10)' : 'var(--bg-input)',
+        border: `1px solid ${isDragOver ? 'var(--accent)' : 'var(--border-strong)'}`,
         borderRadius: 'var(--radius-lg)',
         padding: '4px 8px',
-        transition: 'var(--transition)',
+        transition: 'border-color var(--transition), background var(--transition)',
+        boxShadow: isDragOver ? '0 0 0 3px rgba(88,101,242,0.15)' : 'inset 0 1px 3px rgba(0,0,0,0.3)',
       }}>
         {/* Attach button */}
         <button

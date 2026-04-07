@@ -16,12 +16,13 @@ export function UserPanel() {
       left: 12,
       width: 306,
       zIndex: 200,
-      background: 'rgba(10, 10, 18, 0.88)',
-      backdropFilter: 'blur(24px)',
-      WebkitBackdropFilter: 'blur(24px)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      /* Gradient top border via background trick */
+      background: 'linear-gradient(var(--bg-base), var(--bg-base)) padding-box, var(--gradient-brand) border-box',
+      border: '1px solid transparent',
       borderRadius: 'var(--radius-lg)',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)',
+      boxShadow: '0 8px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04), 0 0 32px rgba(88,101,242,0.08)',
+      backdropFilter: 'blur(28px)',
+      WebkitBackdropFilter: 'blur(28px)',
       padding: '8px 10px',
       display: 'flex',
       alignItems: 'center',
@@ -38,6 +39,7 @@ export function UserPanel() {
         <div style={{
           fontSize: 13,
           fontWeight: 600,
+          fontFamily: 'var(--font-heading)',
           color: 'var(--text-primary)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -52,7 +54,8 @@ export function UserPanel() {
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
-          lineHeight: 1.3,
+          lineHeight: 1.4,
+          marginTop: 1,
         }}>
           @{user.username}
         </div>
@@ -94,7 +97,7 @@ function PanelBtn({ children, title, onClick }: { children: React.ReactNode; tit
         flexShrink: 0,
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+        e.currentTarget.style.background = 'rgba(255,255,255,0.09)';
         e.currentTarget.style.color = 'var(--text-primary)';
       }}
       onMouseLeave={e => {
