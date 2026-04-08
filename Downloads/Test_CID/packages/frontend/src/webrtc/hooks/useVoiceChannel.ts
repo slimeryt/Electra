@@ -6,13 +6,18 @@ import { useStreamSettingsStore, QUALITY_MAP } from '../../store/streamSettingsS
 import { MediaManager } from '../MediaManager';
 import { PeerManager } from '../PeerManager';
 
+let voiceJoinGeneration = 0;
+let pendingVoiceRoomStateHandler: ((data: any) => void) | null = null;
+
 export function useVoiceChannel() {
   const { user } = useAuthStore();
   const { fps, quality } = useStreamSettingsStore();
   const { width, height } = QUALITY_MAP[quality];
   const {
     activeChannelId, localStream, isMuted, isDeafened, isVideoEnabled, isScreenSharing,
+    joiningChannelId, voiceJoinError,
     setActiveChannel, setLocalStream, setMuted, setDeafened, setVideoEnabled, setScreenSharing,
+    setJoiningChannelId, setVoiceJoinError,
     participants, reset,
   } = useVoiceStore();
 
@@ -44,7 +49,25 @@ export function useVoiceChannel() {
   }, [activeChannelId, localStream]);
 
   const joinChannel = useCallback(async (channelId: string) => {
-    // Get mic stream — fall back to a silent stream if permission denied / no device
+    const store = useVoiceStore.getState();
+
+    if (pendingVoiceRoomStateHandler) {
+      socket.off('voice_room_state', pendingVoiceRoomStateHandler);
+      pendingVoiceRoomStateHandler = null;
+    }
+
+    const { activeChannelId: cur, localStream: prevStream } = store;
+    if (cur && cur !== channelId) {
+      socket.emit('voice_leave', { channel_id: cur });
+      if (prevStream) MediaManager.stopStream(prevStream);
+      PeerManager.closeAll();
+      store.reset();
+    }
+
+    const gen = ++voiceJoinGeneration;
+    store.setJoiningChannelId(channelId);
+    store.setVoiceJoinError(null);
+
     let stream: MediaStream;
     try {
       stream = await MediaManager.getAudioStream();
@@ -52,49 +75,67 @@ export function useVoiceChannel() {
       stream = new MediaStream();
     }
 
-    setLocalStream(stream);
+    store.setLocalStream(stream);
     PeerManager.setChannel(channelId);
 
-    // Register listener BEFORE emitting join to avoid the race where
-    // the server emits voice_room_state before our ack callback fires
-    socket.once('voice_room_state', async ({ participants: existing }: any) => {
+    const onRoomState = async (payload: any) => {
+      socket.off('voice_room_state', onRoomState);
+      if (pendingVoiceRoomStateHandler === onRoomState) pendingVoiceRoomStateHandler = null;
+      if (gen !== voiceJoinGeneration) return;
+      if (payload?.channel_id !== channelId) return;
+      const existing = payload.participants ?? [];
       for (const p of existing) {
         if (p.userId !== user?.id) {
           await PeerManager.createOffer(p.userId, stream);
         }
       }
-    });
+    };
+    pendingVoiceRoomStateHandler = onRoomState;
+    socket.on('voice_room_state', onRoomState);
 
     socket.emit('voice_join', { channel_id: channelId }, (res: any) => {
+      if (gen !== voiceJoinGeneration) return;
       if (res?.ok) {
-        setActiveChannel(channelId);
+        store.setActiveChannel(channelId);
+        store.setJoiningChannelId(null);
+        store.setVoiceJoinError(null);
       } else {
-        socket.off('voice_room_state');
-        console.error('voice_join rejected:', res?.error);
+        socket.off('voice_room_state', onRoomState);
+        if (pendingVoiceRoomStateHandler === onRoomState) pendingVoiceRoomStateHandler = null;
+        MediaManager.stopStream(stream);
+        PeerManager.closeAll();
+        store.setLocalStream(null);
+        store.setJoiningChannelId(null);
+        store.setVoiceJoinError(res?.error || 'Could not join voice channel');
       }
     });
-  }, [user]);
+  }, [user?.id, socket]);
 
   const leaveChannel = useCallback(() => {
+    if (pendingVoiceRoomStateHandler) {
+      socket.off('voice_room_state', pendingVoiceRoomStateHandler);
+      pendingVoiceRoomStateHandler = null;
+    }
+    voiceJoinGeneration++;
     if (!activeChannelId) return;
     socket.emit('voice_leave', { channel_id: activeChannelId });
     MediaManager.stopStream(localStream);
     PeerManager.closeAll();
     reset();
-  }, [activeChannelId, localStream]);
+  }, [activeChannelId, localStream, socket, reset]);
 
   const toggleMute = useCallback(() => {
     const next = !isMuted;
     localStream?.getAudioTracks().forEach(t => { t.enabled = !next; });
     setMuted(next);
     if (activeChannelId) socket.emit('voice_mute', { channel_id: activeChannelId, muted: next });
-  }, [isMuted, localStream, activeChannelId]);
+  }, [isMuted, localStream, activeChannelId, socket, setMuted]);
 
   const toggleDeafen = useCallback(() => {
     const next = !isDeafened;
     setDeafened(next);
     if (activeChannelId) socket.emit('voice_deafen', { channel_id: activeChannelId, deafened: next });
-  }, [isDeafened, activeChannelId]);
+  }, [isDeafened, activeChannelId, socket, setDeafened]);
 
   const toggleVideo = useCallback(async () => {
     if (isVideoEnabled) {
@@ -114,9 +155,9 @@ export function useVoiceChannel() {
         setLocalStream(newStream);
         setVideoEnabled(true);
         if (activeChannelId) socket.emit('video_toggle', { channel_id: activeChannelId, enabled: true });
-      } catch {}
+      } catch { /* user denied */ }
     }
-  }, [isVideoEnabled, localStream, activeChannelId]);
+  }, [isVideoEnabled, localStream, activeChannelId, fps, width, height, socket, setLocalStream, setVideoEnabled]);
 
   const toggleScreenShare = useCallback(async () => {
     if (isScreenSharing) {
@@ -138,16 +179,24 @@ export function useVoiceChannel() {
           const audioOnlyStream = new MediaStream(newStream.getAudioTracks());
           setLocalStream(audioOnlyStream);
           setScreenSharing(false);
-          if (activeChannelId) socket.emit('screen_share_stop', { channel_id: activeChannelId });
+          const ch = useVoiceStore.getState().activeChannelId;
+          if (ch) getSocket().emit('screen_share_stop', { channel_id: ch });
         };
         setScreenSharing(true);
         if (activeChannelId) socket.emit('screen_share_start', { channel_id: activeChannelId });
-      } catch {}
+      } catch { /* user denied */ }
     }
-  }, [isScreenSharing, localStream, activeChannelId]);
+  }, [isScreenSharing, localStream, activeChannelId, fps, width, height, socket, setLocalStream, setScreenSharing]);
+
+  const clearJoinError = useCallback(() => {
+    useVoiceStore.getState().setVoiceJoinError(null);
+  }, []);
 
   return {
     activeChannelId,
+    joiningChannelId,
+    voiceJoinError,
+    clearJoinError,
     participants,
     localStream,
     isMuted,

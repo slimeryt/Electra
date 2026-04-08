@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { ServerMember } from '../../types/models';
+import { ServerMember, ServerMemberWithRoles } from '../../types/models';
 import { serversApi } from '../../api/servers';
 import { useAuthStore } from '../../store/authStore';
 import { Avatar } from '../ui/Avatar';
 import { UserPreview, useUserPreview, PreviewUser } from '../ui/UserPreview';
 
 export function MemberList({ serverId }: { serverId: string }) {
-  const [members, setMembers] = useState<ServerMember[]>([]);
+  const [members, setMembers] = useState<ServerMemberWithRoles[]>([]);
   const { user: currentUser } = useAuthStore();
   const { previewUser, anchorRef, openPreview, closePreview } = useUserPreview();
   const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -16,7 +16,7 @@ export function MemberList({ serverId }: { serverId: string }) {
     serversApi.members(serverId).then(setMembers).catch(() => {});
   }, [serverId]);
 
-  const handleMemberClick = (member: ServerMember, el: HTMLDivElement) => {
+  const handleMemberClick = (member: ServerMemberWithRoles, el: HTMLDivElement) => {
     const previewData: PreviewUser = {
       id: member.id,
       username: member.username,
@@ -28,7 +28,7 @@ export function MemberList({ serverId }: { serverId: string }) {
     openPreview(previewData, el);
   };
 
-  const groups = members.reduce<Record<string, ServerMember[]>>((acc, m) => {
+  const groups = members.reduce<Record<string, ServerMemberWithRoles[]>>((acc, m) => {
     const key = m.status === 'offline' ? 'Offline' : 'Online';
     if (!acc[key]) acc[key] = [];
     acc[key].push(m);
@@ -99,9 +99,22 @@ export function MemberList({ serverId }: { serverId: string }) {
                 }}>
                   {member.display_name || member.username}
                 </div>
-                {(member as any).role && (member as any).role !== 'member' && (
-                  <div style={{ fontSize: 11, color: 'var(--accent)', textTransform: 'capitalize' }}>
-                    {(member as any).role}
+                {member.roles && member.roles.length > 0 && !member.roles.every(r => r.is_default) && (
+                  <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 2 }}>
+                    {member.roles.filter(r => !r.is_default).slice(0, 2).map(r => (
+                      <span
+                        key={r.id}
+                        style={{
+                          fontSize: 10, padding: '1px 5px', borderRadius: 3,
+                          background: `${r.color}22`,
+                          color: r.color || 'var(--accent)',
+                          border: `1px solid ${r.color}44`,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {r.name}
+                      </span>
+                    ))}
                   </div>
                 )}
               </div>

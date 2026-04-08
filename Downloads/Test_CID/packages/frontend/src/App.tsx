@@ -12,6 +12,7 @@ import UserSettingsPage from './pages/UserSettingsPage';
 import ServerSettingsPage from './pages/ServerSettingsPage';
 import DiscoveryPage from './pages/DiscoveryPage';
 import WelcomePage from './pages/WelcomePage';
+import FriendsPage from './pages/FriendsPage';
 
 // Listens for the auth:logout event fired by the axios interceptor when
 // token refresh fails, and navigates to /login via React Router (not window.location).
@@ -71,6 +72,7 @@ export default function App() {
             <Route path="dms/:dmId" element={<DMPage />} />
             <Route path="settings" element={<UserSettingsPage />} />
             <Route path="discover" element={<DiscoveryPage />} />
+            <Route path="friends" element={<FriendsPage />} />
           </Route>
           <Route path="/" element={<Navigate to="/app" replace />} />
           <Route path="*" element={<Navigate to="/app" replace />} />

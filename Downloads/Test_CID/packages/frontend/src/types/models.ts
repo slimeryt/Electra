@@ -97,3 +97,49 @@ export interface VoiceParticipant {
   screen: boolean;
   user?: MessageAuthor;
 }
+
+export interface ServerRole {
+  id: string;
+  server_id: string;
+  name: string;
+  color: string;
+  position: number;
+  permissions: number;
+  hoist: number;
+  is_default: number;
+  created_at: number;
+}
+
+export interface ServerMemberWithRoles extends ServerMember {
+  roles?: ServerRole[];
+}
+
+export type FriendStatus = 'pending' | 'accepted' | 'blocked';
+
+export interface Friend {
+  id: string;
+  status: FriendStatus;
+  direction: 'incoming' | 'outgoing' | 'accepted';
+  created_at: number;
+  user: {
+    id: string;
+    username: string;
+    display_name: string;
+    avatar_url: string | null;
+    status: User['status'];
+  };
+}
+
+export const Permissions = {
+  SEND_MESSAGES:    1 << 0,
+  ATTACH_FILES:     1 << 1,
+  MANAGE_MESSAGES:  1 << 2,
+  MENTION_EVERYONE: 1 << 3,
+  VIEW_CHANNELS:    1 << 4,
+  MANAGE_CHANNELS:  1 << 5,
+  MANAGE_ROLES:     1 << 6,
+  KICK_MEMBERS:     1 << 7,
+  BAN_MEMBERS:      1 << 8,
+  MANAGE_SERVER:    1 << 9,
+  ADMINISTRATOR:    1 << 30,
+} as const;

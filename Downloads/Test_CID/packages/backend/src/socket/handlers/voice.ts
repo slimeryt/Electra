@@ -2,6 +2,15 @@ import { Server, Socket } from 'socket.io';
 import { joinVoiceRoom, leaveVoiceRoom, updateVoiceState, getVoiceParticipants, voiceRooms } from '../rooms';
 import db from '../../db/connection';
 
+function leaveSocketVoiceRoom(io: Server, socket: Socket, uid: string, channelId: string) {
+  const ch = db.prepare('SELECT server_id FROM channels WHERE id = ?').get(channelId) as any;
+  leaveVoiceRoom(channelId, uid);
+  socket.leave(`voice:${channelId}`);
+  const leavePayload = { channel_id: channelId, user_id: uid };
+  io.to(`voice:${channelId}`).emit('voice_user_leave', leavePayload);
+  if (ch?.server_id) socket.to(`server:${ch.server_id}`).emit('voice_user_leave', leavePayload);
+}
+
 export function registerVoiceHandlers(io: Server, socket: Socket) {
   const userId = (socket as any).userId;
   const user = (socket as any).user;
@@ -10,13 +19,19 @@ export function registerVoiceHandlers(io: Server, socket: Socket) {
     try {
       // Verify access
       const channel = db.prepare(
-        'SELECT c.server_id FROM channels c JOIN server_members sm ON sm.server_id = c.server_id AND sm.user_id = ? WHERE c.id = ? AND c.type = ?'
-      ).get(userId, data.channel_id, 'voice');
+        'SELECT c.id, c.server_id FROM channels c JOIN server_members sm ON sm.server_id = c.server_id AND sm.user_id = ? WHERE c.id = ? AND c.type = ?'
+      ).get(userId, data.channel_id, 'voice') as any;
 
       if (!channel) return callback?.({ error: 'Forbidden or not a voice channel' });
 
+      const prevVoiceChannelId = (socket as any).voiceChannelId as string | undefined;
+      if (prevVoiceChannelId && prevVoiceChannelId !== data.channel_id) {
+        leaveSocketVoiceRoom(io, socket, userId, prevVoiceChannelId);
+      }
+
       joinVoiceRoom(data.channel_id, userId);
       socket.join(`voice:${data.channel_id}`);
+      (socket as any).voiceChannelId = data.channel_id;
 
       const participants = getVoiceParticipants(data.channel_id).map(p => ({
         ...p,
@@ -26,12 +41,10 @@ export function registerVoiceHandlers(io: Server, socket: Socket) {
       // Tell the joining user about existing participants
       socket.emit('voice_room_state', { channel_id: data.channel_id, participants });
 
-      // Tell existing participants about the new joiner
-      socket.to(`voice:${data.channel_id}`).emit('voice_user_join', {
-        channel_id: data.channel_id,
-        user_id: userId,
-        user,
-      });
+      // Tell everyone in the voice room + server room about the new joiner
+      const joinPayload = { channel_id: data.channel_id, user_id: userId, user };
+      socket.to(`voice:${data.channel_id}`).emit('voice_user_join', joinPayload);
+      socket.to(`server:${channel.server_id}`).emit('voice_user_join', joinPayload);
 
       callback?.({ ok: true });
     } catch (e: any) {
@@ -40,9 +53,10 @@ export function registerVoiceHandlers(io: Server, socket: Socket) {
   });
 
   socket.on('voice_leave', (data: { channel_id: string }) => {
-    leaveVoiceRoom(data.channel_id, userId);
-    socket.leave(`voice:${data.channel_id}`);
-    io.to(`voice:${data.channel_id}`).emit('voice_user_leave', { channel_id: data.channel_id, user_id: userId });
+    leaveSocketVoiceRoom(io, socket, userId, data.channel_id);
+    if ((socket as any).voiceChannelId === data.channel_id) {
+      (socket as any).voiceChannelId = undefined;
+    }
   });
 
   // WebRTC signaling relay
@@ -88,13 +102,17 @@ export function registerVoiceHandlers(io: Server, socket: Socket) {
   });
 
   socket.on('disconnect', () => {
-    // Leave all voice rooms
-    for (const [channelId, room] of Array.from(voiceRooms.entries()) as [string, Map<string, any>][]) {
-      if (room.has(userId)) {
-        leaveVoiceRoom(channelId, userId);
-        io.to(`voice:${channelId}`).emit('voice_user_leave', { channel_id: channelId, user_id: userId });
+    const tracked = (socket as any).voiceChannelId as string | undefined;
+    if (tracked) {
+      leaveSocketVoiceRoom(io, socket, userId, tracked);
+    } else {
+      for (const [channelId, room] of Array.from(voiceRooms.entries()) as [string, Map<string, any>][]) {
+        if (room.has(userId)) {
+          leaveSocketVoiceRoom(io, socket, userId, channelId);
+        }
       }
     }
+    (socket as any).voiceChannelId = undefined;
   });
 }
 

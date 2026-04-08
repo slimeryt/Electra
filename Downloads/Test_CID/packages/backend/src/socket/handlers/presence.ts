@@ -12,6 +12,9 @@ export function registerPresenceHandlers(io: Server, socket: Socket) {
     'SELECT server_id FROM server_members WHERE user_id = ?'
   ).all(userId) as { server_id: string }[]).map(r => r.server_id);
 
+  // Join personal room for direct notifications (friend requests, etc.)
+  socket.join(`user:${userId}`);
+
   for (const serverId of serverIds) {
     socket.join(`server:${serverId}`);
     socket.to(`server:${serverId}`).emit('user_status_change', { user_id: userId, status: 'online' });

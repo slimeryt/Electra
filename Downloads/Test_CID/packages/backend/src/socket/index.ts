@@ -6,6 +6,12 @@ import { registerChatHandlers } from './handlers/chat';
 import { registerDmHandlers } from './handlers/dm';
 import { registerVoiceHandlers } from './handlers/voice';
 
+let _io: SocketServer | null = null;
+export function getIo(): SocketServer {
+  if (!_io) throw new Error('Socket server not initialized');
+  return _io;
+}
+
 export function createSocketServer(httpServer: HttpServer) {
   const io = new SocketServer(httpServer, {
     cors: {
@@ -14,6 +20,7 @@ export function createSocketServer(httpServer: HttpServer) {
     },
   });
 
+  _io = io;
   io.use(socketAuthMiddleware);
 
   io.on('connection', (socket) => {

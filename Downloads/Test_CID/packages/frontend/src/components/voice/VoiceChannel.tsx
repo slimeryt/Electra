@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 import { useVoiceChannel } from '../../webrtc/hooks/useVoiceChannel';
 import { useAuthStore } from '../../store/authStore';
+import { useChannelStore } from '../../store/channelStore';
 import { ParticipantTile } from './ParticipantTile';
 import { VoiceControls } from './VoiceControls';
 import { Spinner } from '../ui/Spinner';
@@ -10,10 +12,29 @@ import { VoiceParticipant } from '../../types/models';
 export function VoiceChannel() {
   const { channelId, serverId } = useParams<{ channelId: string; serverId: string }>();
   const { user } = useAuthStore();
-  const { activeChannelId, participants, localStream, isVideoEnabled, isScreenSharing, joinChannel, leaveChannel } = useVoiceChannel();
+  const { channelsByServer } = useChannelStore();
+  const {
+    activeChannelId,
+    joiningChannelId,
+    voiceJoinError,
+    clearJoinError,
+    participants,
+    localStream,
+    isVideoEnabled,
+    isScreenSharing,
+    joinChannel,
+    leaveChannel,
+  } = useVoiceChannel();
   const navigate = useNavigate();
   const [timedOut, setTimedOut] = useState(false);
   const [hasLeft, setHasLeft] = useState(false);
+
+  const channels = channelsByServer[serverId || ''] || [];
+  const channelName = channels.find(c => c.id === channelId)?.name;
+
+  useEffect(() => {
+    setHasLeft(false);
+  }, [channelId]);
 
   useEffect(() => {
     if (hasLeft) return;
@@ -23,24 +44,76 @@ export function VoiceChannel() {
     }
   }, [channelId, joinChannel, activeChannelId, hasLeft]);
 
-  // Show error if still connecting after 8 seconds
   useEffect(() => {
-    if (activeChannelId) return;
+    if (activeChannelId === channelId) setTimedOut(false);
+  }, [activeChannelId, channelId]);
+
+  useEffect(() => {
+    if (!channelId || hasLeft || voiceJoinError) return;
+    if (activeChannelId === channelId) return;
     const t = setTimeout(() => setTimedOut(true), 8000);
     return () => clearTimeout(t);
-  }, [activeChannelId]);
+  }, [channelId, hasLeft, voiceJoinError, activeChannelId]);
 
-  if (!activeChannelId) {
+  const isConnecting = !!(channelId && !hasLeft && activeChannelId !== channelId);
+  const isInCall = !!(channelId && activeChannelId === channelId);
+
+  if (!channelId) {
+    return null;
+  }
+
+  if (voiceJoinError && !isInCall) {
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+        <AlertTriangle size={36} style={{ color: 'var(--danger)', opacity: 0.9 }} />
+        <span style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 600 }}>Could not join voice</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', maxWidth: 320 }}>{voiceJoinError}</span>
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <button
+            type="button"
+            onClick={() => {
+              clearJoinError();
+              setTimedOut(false);
+              joinChannel(channelId);
+            }}
+            style={{ padding: '8px 20px', background: 'var(--accent)', border: 'none', borderRadius: 'var(--radius-md)', color: '#fff', cursor: 'pointer', fontSize: 14 }}
+          >
+            Try again
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            style={{ padding: '8px 20px', background: 'var(--bg-hover)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 14 }}
+          >
+            Go back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isConnecting || timedOut) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
         {timedOut ? (
           <>
-            <span style={{ fontSize: 32 }}>⚠️</span>
+            <AlertTriangle size={36} style={{ color: 'var(--danger)', opacity: 0.9 }} />
             <span style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 600 }}>Failed to join voice channel</span>
             <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Check your microphone permissions or server connection.</span>
             <button
-              onClick={() => navigate(-1)}
+              type="button"
+              onClick={() => {
+                setTimedOut(false);
+                joinChannel(channelId);
+              }}
               style={{ marginTop: 8, padding: '8px 20px', background: 'var(--accent)', border: 'none', borderRadius: 'var(--radius-md)', color: '#fff', cursor: 'pointer', fontSize: 14 }}
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              style={{ marginTop: 4, padding: '8px 20px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13 }}
             >
               Go back
             </button>
@@ -48,14 +121,19 @@ export function VoiceChannel() {
         ) : (
           <>
             <Spinner size={32} />
-            <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>Connecting...</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>
+              {joiningChannelId === channelId ? `Joining${channelName ? ` ${channelName}` : ''}…` : 'Connecting…'}
+            </span>
           </>
         )}
       </div>
     );
   }
 
-  // Build participant list with local user first
+  if (!isInCall) {
+    return null;
+  }
+
   const localParticipant: VoiceParticipant = {
     userId: user?.id || '',
     user: {
@@ -80,7 +158,6 @@ export function VoiceChannel() {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Participant grid */}
       <div style={{
         flex: 1,
         padding: 16,
@@ -100,7 +177,6 @@ export function VoiceChannel() {
         ))}
       </div>
 
-      {/* Controls */}
       <VoiceControls onLeave={() => {
         setHasLeft(true);
         leaveChannel();

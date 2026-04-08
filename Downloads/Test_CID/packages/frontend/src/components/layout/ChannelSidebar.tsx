@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Hash, Volume2, Megaphone, ChevronDown, ChevronRight, Plus, CheckCheck, Clipboard, Pencil, Trash2 } from 'lucide-react';
+import { Hash, Volume2, Megaphone, ChevronDown, ChevronRight, Plus, CheckCheck, Clipboard, Pencil, Trash2, PhoneOff, Mic, MicOff } from 'lucide-react';
 import { useChannelStore } from '../../store/channelStore';
 import { useServerStore } from '../../store/serverStore';
 import { useAuthStore } from '../../store/authStore';
+import { useVoiceStore } from '../../store/voiceStore';
 import { Channel } from '../../types/models';
 import { ChannelCreateModal } from '../server/ChannelCreateModal';
 import { useContextMenu } from '../../context/ContextMenuContext';
 import { channelsApi } from '../../api/channels';
+import { useVoiceChannel } from '../../webrtc/hooks/useVoiceChannel';
+import { Avatar } from '../ui/Avatar';
 
 interface ChannelIconProps {
   type: string;
@@ -23,6 +26,8 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
   const { channelsByServer, activeChannelId, setActiveChannel, fetchChannels, removeChannel } = useChannelStore();
   const { servers } = useServerStore();
   const { user } = useAuthStore();
+  const { activeChannelId: activeVoiceChannelId, channelParticipants, isMuted } = useVoiceStore();
+  const { leaveChannel, toggleMute } = useVoiceChannel();
   const navigate = useNavigate();
   const { show } = useContextMenu();
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -155,50 +160,135 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
             {!collapsed[category] && chs.map(channel => {
               const isActive = activeChannelId === channel.id;
               return (
-                <div
-                  key={channel.id}
-                  onClick={() => handleChannelClick(channel)}
-                  onContextMenu={(e) => handleChannelContextMenu(e, channel)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 7,
-                    padding: '5px 10px 5px 10px',
-                    margin: '1px 6px',
-                    borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer',
-                    background: isActive
-                      ? 'linear-gradient(135deg, rgba(88,101,242,0.22) 0%, rgba(124,58,237,0.10) 100%)'
-                      : 'transparent',
-                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    boxShadow: isActive ? '0 0 0 1px rgba(88,101,242,0.28), inset 0 0 24px rgba(88,101,242,0.06)' : 'none',
-                    transition: 'all var(--transition)',
-                    userSelect: 'none',
-                  }}
-                  onMouseEnter={e => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = 'var(--bg-hover)';
-                      e.currentTarget.style.color = 'var(--text-primary)';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = 'var(--text-secondary)';
-                    }
-                  }}
-                >
-                  <ChannelIcon type={channel.type} />
-                  <span style={{
-                    fontSize: 13.5, fontWeight: isActive ? 600 : 400,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
-                  }}>
-                    {channel.name}
-                  </span>
+                <div key={channel.id} style={{ margin: '1px 6px' }}>
+                  <div
+                    onClick={() => handleChannelClick(channel)}
+                    onContextMenu={(e) => handleChannelContextMenu(e, channel)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 7,
+                      padding: '5px 10px',
+                      borderRadius: 'var(--radius-md)',
+                      cursor: 'pointer',
+                      background: isActive
+                        ? 'linear-gradient(135deg, rgba(88,101,242,0.22) 0%, rgba(124,58,237,0.10) 100%)'
+                        : 'transparent',
+                      color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      boxShadow: isActive ? '0 0 0 1px rgba(88,101,242,0.28), inset 0 0 24px rgba(88,101,242,0.06)' : 'none',
+                      transition: 'all var(--transition)',
+                      userSelect: 'none',
+                    }}
+                    onMouseEnter={e => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'var(--bg-hover)';
+                        e.currentTarget.style.color = 'var(--text-primary)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = 'var(--text-secondary)';
+                      }
+                    }}
+                  >
+                    <ChannelIcon type={channel.type} />
+                    <span style={{
+                      fontSize: 13.5, fontWeight: isActive ? 600 : 400,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+                    }}>
+                      {channel.name}
+                    </span>
+                    {channel.type === 'voice' && activeVoiceChannelId === channel.id && (
+                      <span style={{
+                        width: 7, height: 7, borderRadius: '50%',
+                        background: 'var(--success)', flexShrink: 0,
+                        boxShadow: '0 0 6px rgba(34,197,94,0.6)',
+                      }} />
+                    )}
+                  </div>
+                  {/* Voice channel participants */}
+                  {channel.type === 'voice' && (channelParticipants[channel.id]?.length ?? 0) > 0 && (
+                    <div style={{ paddingLeft: 28, paddingBottom: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {(channelParticipants[channel.id] || []).map(p => (
+                        <div key={p.userId} style={{
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          padding: '2px 6px', borderRadius: 'var(--radius-sm)',
+                          opacity: 0.85,
+                        }}>
+                          <Avatar user={p.user as any} size={16} />
+                          <span style={{
+                            fontSize: 11.5, color: p.userId === user?.id ? 'var(--success)' : 'var(--text-muted)',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {p.user?.display_name || p.user?.username || 'User'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         ))}
       </div>
+
+      {/* Persistent voice connected bar */}
+      {activeVoiceChannelId && (() => {
+        const voiceChannel = channels.find(c => c.id === activeVoiceChannelId);
+        return (
+          <div style={{
+            margin: '0 8px 8px', padding: '8px 10px',
+            background: 'rgba(34,197,94,0.08)',
+            border: '1px solid rgba(34,197,94,0.18)',
+            borderRadius: 'var(--radius-md)',
+            flexShrink: 0,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+              <span style={{
+                width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', flexShrink: 0,
+                boxShadow: '0 0 6px rgba(34,197,94,0.6)',
+              }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', flex: 1, letterSpacing: '0.03em' }}>
+                Voice Connected
+              </span>
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Volume2 size={11} />
+              {voiceChannel?.name || 'Voice Channel'}
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                onClick={toggleMute}
+                title={isMuted ? 'Unmute' : 'Mute'}
+                style={{
+                  flex: 1, height: 26, borderRadius: 'var(--radius-sm)', border: 'none',
+                  background: isMuted ? 'rgba(240,71,71,0.2)' : 'var(--bg-hover)',
+                  color: isMuted ? 'var(--danger)' : 'var(--text-muted)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                  fontSize: 11, fontWeight: 500, transition: 'all 150ms',
+                }}
+              >
+                {isMuted ? <MicOff size={11} /> : <Mic size={11} />}
+                {isMuted ? 'Unmute' : 'Mute'}
+              </button>
+              <button
+                onClick={() => { leaveChannel(); navigate(`/app/servers/${serverId}`); }}
+                title="Disconnect"
+                style={{
+                  flex: 1, height: 26, borderRadius: 'var(--radius-sm)', border: 'none',
+                  background: 'rgba(240,71,71,0.15)', color: 'var(--danger)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                  fontSize: 11, fontWeight: 500, transition: 'all 150ms',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(240,71,71,0.28)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(240,71,71,0.15)'; }}
+              >
+                <PhoneOff size={11} /> Disconnect
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {isAdminOrOwner && (
         <ChannelCreateModal

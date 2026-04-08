@@ -1,4 +1,5 @@
 import db from '../db/connection';
+import { createDefaultRoles, getMemberRoles } from './roleService';
 
 interface Server {
   id: string;
@@ -47,6 +48,9 @@ export function createServer(name: string, description: string | undefined, owne
     db.prepare(
       "INSERT INTO channels (server_id, name, type, category, position) VALUES (?, 'General', 'voice', 'Voice Channels', 1)"
     ).run(s.id);
+
+    // Create default @everyone role
+    createDefaultRoles(s.id);
 
     return s;
   })();
@@ -101,13 +105,19 @@ export function deleteServer(serverId: string, userId: string) {
 }
 
 export function getServerMembers(serverId: string) {
-  return db.prepare(`
+  const members = db.prepare(`
     SELECT u.id, u.username, u.display_name, u.avatar_url, u.status, sm.role, sm.joined_at
     FROM server_members sm
     JOIN users u ON u.id = sm.user_id
     WHERE sm.server_id = ?
     ORDER BY sm.joined_at ASC
-  `).all(serverId);
+  `).all(serverId) as any[];
+
+  const rolesByUser = getMemberRoles(serverId);
+  return members.map(m => ({
+    ...m,
+    roles: rolesByUser.get(m.id) ?? [],
+  }));
 }
 
 export function joinServer(inviteCode: string, userId: string) {

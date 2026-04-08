@@ -108,3 +108,38 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   expires_at INTEGER NOT NULL,
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
+
+-- ─── Friends ──────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS friendships (
+  id           TEXT NOT NULL PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  requester_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  addressee_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status       TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','blocked')),
+  created_at   INTEGER NOT NULL DEFAULT (unixepoch()),
+  UNIQUE(requester_id, addressee_id)
+);
+CREATE INDEX IF NOT EXISTS idx_friendships_addressee ON friendships(addressee_id, status);
+CREATE INDEX IF NOT EXISTS idx_friendships_requester ON friendships(requester_id, status);
+
+-- ─── Server Roles ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS server_roles (
+  id          TEXT NOT NULL PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  server_id   TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  color       TEXT NOT NULL DEFAULT '#99aab5',
+  position    INTEGER NOT NULL DEFAULT 0,
+  permissions INTEGER NOT NULL DEFAULT 0,
+  hoist       INTEGER NOT NULL DEFAULT 0,
+  is_default  INTEGER NOT NULL DEFAULT 0,
+  created_at  INTEGER NOT NULL DEFAULT (unixepoch())
+);
+CREATE INDEX IF NOT EXISTS idx_server_roles_server ON server_roles(server_id, position);
+
+-- ─── Role ↔ Member mapping ────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS member_roles (
+  role_id   TEXT NOT NULL REFERENCES server_roles(id) ON DELETE CASCADE,
+  user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  PRIMARY KEY (role_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_member_roles_server_user ON member_roles(server_id, user_id);

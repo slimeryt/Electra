@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import * as serverService from '../services/serverService';
+import * as roleService from '../services/roleService';
 import db from '../db/connection';
 
 // One-time migration: add is_public column
@@ -75,6 +76,41 @@ router.delete('/:serverId/members/:userId', (req: AuthRequest, res, next) => {
   try {
     serverService.kickMember(req.params.serverId, req.params.userId, req.userId!);
     res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// ─── Roles ────────────────────────────────────────────────────────────────────
+
+router.get('/:serverId/roles', (req: AuthRequest, res, next) => {
+  try { res.json(roleService.getRoles(req.params.serverId)); } catch (e) { next(e); }
+});
+
+router.post('/:serverId/roles', (req: AuthRequest, res, next) => {
+  try {
+    const { name, color, permissions } = req.body;
+    if (!name) return res.status(400).json({ error: 'name required' });
+    res.status(201).json(roleService.createRole(req.params.serverId, req.userId!, { name, color, permissions }));
+  } catch (e) { next(e); }
+});
+
+router.patch('/:serverId/roles/:roleId', (req: AuthRequest, res, next) => {
+  try { res.json(roleService.updateRole(req.params.roleId, req.userId!, req.body)); } catch (e) { next(e); }
+});
+
+router.delete('/:serverId/roles/:roleId', (req: AuthRequest, res, next) => {
+  try { res.json(roleService.deleteRole(req.params.roleId, req.userId!)); } catch (e) { next(e); }
+});
+
+// Assign / remove role from member
+router.post('/:serverId/members/:targetUserId/roles/:roleId', (req: AuthRequest, res, next) => {
+  try {
+    res.json(roleService.assignRole(req.params.serverId, req.params.roleId, req.params.targetUserId, req.userId!));
+  } catch (e) { next(e); }
+});
+
+router.delete('/:serverId/members/:targetUserId/roles/:roleId', (req: AuthRequest, res, next) => {
+  try {
+    res.json(roleService.removeRole(req.params.serverId, req.params.roleId, req.params.targetUserId, req.userId!));
   } catch (e) { next(e); }
 });
 

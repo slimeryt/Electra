@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Settings, Users, Hash, Link, AlertTriangle, ChevronLeft, Volume2, Megaphone, Trash2, Crown } from 'lucide-react';
+import { Settings, Users, Hash, Link, AlertTriangle, ChevronLeft, Volume2, Megaphone, Trash2, Shield } from 'lucide-react';
 import { useServerStore } from '../store/serverStore';
 import { useChannelStore } from '../store/channelStore';
 import { useAuthStore } from '../store/authStore';
@@ -10,12 +10,14 @@ import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Avatar } from '../components/ui/Avatar';
 import { ServerMember, Channel } from '../types/models';
+import { RolesEditor } from '../components/server/RolesEditor';
 
-type Tab = 'overview' | 'members' | 'channels' | 'invites' | 'danger';
+type Tab = 'overview' | 'members' | 'roles' | 'channels' | 'invites' | 'danger';
 
 const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'overview',  label: 'Overview',    icon: <Settings size={15} /> },
   { id: 'members',   label: 'Members',     icon: <Users size={15} /> },
+  { id: 'roles',     label: 'Roles',       icon: <Shield size={15} /> },
   { id: 'channels',  label: 'Channels',    icon: <Hash size={15} /> },
   { id: 'invites',   label: 'Invites',     icon: <Link size={15} /> },
   { id: 'danger',    label: 'Danger Zone', icon: <AlertTriangle size={15} /> },
@@ -403,6 +405,7 @@ export default function ServerSettingsPage() {
           </h1>
           {activeTab === 'overview'  && <OverviewTab serverId={serverId!} />}
           {activeTab === 'members'   && <MembersTab serverId={serverId!} />}
+          {activeTab === 'roles'     && <RolesEditor serverId={serverId!} />}
           {activeTab === 'channels'  && <ChannelsTab serverId={serverId!} />}
           {activeTab === 'invites'   && <InvitesTab serverId={serverId!} />}
           {activeTab === 'danger'    && <DangerTab serverId={serverId!} />}

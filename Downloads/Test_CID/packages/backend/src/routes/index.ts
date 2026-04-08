@@ -5,6 +5,7 @@ import channelsRouter from './channels';
 import dmsRouter from './dms';
 import filesRouter from './files';
 import usersRouter from './users';
+import friendsRouter from './friends';
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use('/', channelsRouter);
 router.use('/dms', dmsRouter);
 router.use('/files', filesRouter);
 router.use('/users', usersRouter);
+router.use('/friends', friendsRouter);
 
 export default router;
