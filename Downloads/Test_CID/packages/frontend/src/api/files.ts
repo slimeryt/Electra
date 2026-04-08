@@ -6,7 +6,6 @@ export const filesApi = {
     const formData = new FormData();
     formData.append('file', file);
     return client.post<FileAttachment>('/files/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (e) => {
         if (e.total) onProgress?.(Math.round((e.loaded / e.total) * 100));
       },

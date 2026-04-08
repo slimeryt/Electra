@@ -57,9 +57,7 @@ export default function UserSettingsPage() {
     try {
       const form = new FormData();
       form.append('avatar', file);
-      const { data } = await client.post('/users/me/avatar', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await client.post('/users/me/avatar', form);
       setUser(data.user || data);
     } catch (e: any) {
       setError(e.response?.data?.error || 'Failed to upload avatar');

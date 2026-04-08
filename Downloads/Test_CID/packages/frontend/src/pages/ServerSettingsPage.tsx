@@ -50,8 +50,7 @@ function OverviewTab({ serverId }: { serverId: string }) {
       const form = new FormData();
       form.append('icon', file);
       const { data } = await (await import('../api/client')).default.post(
-        `/servers/${serverId}/icon`, form,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
+        `/servers/${serverId}/icon`, form
       );
       updateServer({ id: serverId, icon_url: data.icon_url });
     } catch {} finally {
@@ -66,8 +65,7 @@ function OverviewTab({ serverId }: { serverId: string }) {
       const form = new FormData();
       form.append('banner', file);
       const { data } = await (await import('../api/client')).default.post(
-        `/servers/${serverId}/banner`, form,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
+        `/servers/${serverId}/banner`, form
       );
       updateServer({ id: serverId, banner_url: (data as any).banner_url });
     } catch {} finally {
