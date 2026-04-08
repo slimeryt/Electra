@@ -13,6 +13,7 @@ import ServerSettingsPage from './pages/ServerSettingsPage';
 import DiscoveryPage from './pages/DiscoveryPage';
 import WelcomePage from './pages/WelcomePage';
 import FriendsPage from './pages/FriendsPage';
+import { ScreenSharePickerModal } from './components/electron/ScreenSharePickerModal';
 
 // Listens for the auth:logout event fired by the axios interceptor when
 // token refresh fails, and navigates to /login via React Router (not window.location).
@@ -55,6 +56,7 @@ export default function App() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <ContextMenuProvider>
         <AuthLogoutListener />
+        <ScreenSharePickerModal />
         <div style={{ display: 'contents' }} onContextMenu={e => e.preventDefault()}>
         <Routes>
           <Route path="/login" element={<AuthPage mode="login" />} />

@@ -1,30 +1,30 @@
-import { ipcMain, BrowserWindow, Notification, app } from 'electron';
+import { ipcMain, BrowserWindow, Notification } from 'electron';
 import { NotificationPayload } from './types';
+import { saveSessionTokens, loadSessionTokens, clearSessionTokens } from '../sessionPersist';
 
-export function registerIpcHandlers(mainWindow: BrowserWindow) {
-  // Window controls
+export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
   ipcMain.handle('window:minimize', () => {
-    mainWindow.minimize();
+    getMainWindow()?.minimize();
   });
 
   ipcMain.handle('window:maximize', () => {
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize();
-    } else {
-      mainWindow.maximize();
-    }
+    const w = getMainWindow();
+    if (!w) return;
+    if (w.isMaximized()) w.unmaximize();
+    else w.maximize();
   });
 
   ipcMain.handle('window:close', () => {
-    mainWindow.close();
+    getMainWindow()?.close();
   });
 
   ipcMain.handle('window:is-maximized', () => {
-    return mainWindow.isMaximized();
+    return getMainWindow()?.isMaximized() ?? false;
   });
 
-  // Notifications
   ipcMain.handle('notification:show', (_event, payload: NotificationPayload) => {
+    const mainWindow = getMainWindow();
+    if (!mainWindow) return;
     if (Notification.isSupported()) {
       const notification = new Notification({
         title: payload.title,
@@ -38,9 +38,18 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     }
   });
 
-  // Auto-updater check (placeholder — add electron-updater when ready)
   ipcMain.handle('updater:check', () => {
-    // electron-updater integration point
     console.log('[updater] Check for updates triggered');
+  });
+
+  ipcMain.handle('auth:session-save', (_e, tokens: { accessToken: string; refreshToken: string }) => {
+    if (!tokens?.accessToken || !tokens?.refreshToken) return;
+    saveSessionTokens(tokens.accessToken, tokens.refreshToken);
+  });
+
+  ipcMain.handle('auth:session-load', () => loadSessionTokens());
+
+  ipcMain.handle('auth:session-clear', () => {
+    clearSessionTokens();
   });
 }

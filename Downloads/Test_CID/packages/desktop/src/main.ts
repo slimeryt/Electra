@@ -1,9 +1,10 @@
-import { app, BrowserWindow, shell, session, Menu, protocol, Tray, nativeImage, dialog, desktopCapturer } from 'electron';
+import { app, BrowserWindow, shell, session, Menu, protocol, Tray, nativeImage, dialog } from 'electron';
 import path from 'path';
 import os from 'os';
 import zlib from 'zlib';
 import { autoUpdater } from 'electron-updater';
 import { registerIpcHandlers } from './ipc/handlers';
+import { registerDisplayMediaHandler } from './displayMedia';
 
 // @ts-ignore
 import Store from 'electron-store';
@@ -337,8 +338,6 @@ function createMainWindow() {
     },
   });
 
-  registerIpcHandlers(mainWindow);
-
   mainWindow.on('maximize', () => mainWindow?.webContents.send('window:maximize-change', true));
   mainWindow.on('unmaximize', () => mainWindow?.webContents.send('window:maximize-change', false));
 
@@ -420,18 +419,6 @@ function createMainWindow() {
     return allowed.includes(permission);
   });
 
-  // Required in Electron 22+ — without this, getDisplayMedia() is silently rejected
-  // even if setPermissionRequestHandler grants 'display-capture'.
-  session.defaultSession.setDisplayMediaRequestHandler(async (_request, callback) => {
-    try {
-      const sources = await desktopCapturer.getSources({ types: ['screen', 'window'] });
-      // Return the first screen source; the renderer's getDisplayMedia constraints
-      // (frameRate, width, height) are applied by Electron automatically.
-      callback({ video: sources[0], audio: 'loopback' });
-    } catch {
-      callback({});
-    }
-  });
 }
 
 // ─── App lifecycle ────────────────────────────────────────────────────────────
@@ -465,6 +452,8 @@ app.whenReady().then(async () => {
   }
 
   createMainWindow();
+  registerIpcHandlers(() => mainWindow);
+  registerDisplayMediaHandler(() => mainWindow);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();

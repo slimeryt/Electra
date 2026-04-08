@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { isElectron } from '../env';
+import { clearPersistedAuth, persistAuthTokens } from '../lib/electronAuthPersist';
 
 const BASE = isElectron
   ? (import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001')
@@ -46,6 +47,7 @@ client.interceptors.response.use(
         const { data } = await axios.post(`${BASE}/api/auth/refresh`, { refresh_token: refreshToken });
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
+        if (isElectron) void persistAuthTokens(data.accessToken, data.refreshToken);
 
         refreshQueue.forEach((cb) => cb(data.accessToken));
         refreshQueue = [];
@@ -55,6 +57,7 @@ client.interceptors.response.use(
       } catch {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        if (isElectron) void clearPersistedAuth();
         // Use hash-less navigation so the SPA handles routing correctly in Electron
         window.dispatchEvent(new CustomEvent('auth:logout'));
       } finally {
