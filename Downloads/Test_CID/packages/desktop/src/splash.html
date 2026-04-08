@@ -205,6 +205,7 @@
 
     let i = 0;
     function tick() {
+      if (window.__stopFakeProgress) return;
       if (i >= steps.length) return;
       bar.style.width = steps[i].pct + '%';
       status.style.opacity = '0';

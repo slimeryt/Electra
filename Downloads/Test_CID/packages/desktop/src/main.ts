@@ -33,50 +33,148 @@ if (!isDev) {
   ]);
 }
 
-// ─── Auto-updater ────────────────────────────────────────────────────────────
+// ─── Auto-updater (startup gate) ─────────────────────────────────────────────
 
-function setupAutoUpdater() {
+function splashSetStatus(text: string) {
+  const safe = JSON.stringify(text);
+  const win = splashWindow;
+  if (!win || win.isDestroyed()) return;
+  win.webContents.executeJavaScript(`try { document.getElementById('status').textContent = ${safe}; } catch {}`).catch(() => {});
+}
+
+function splashSetProgress(percent: number) {
+  const w = Math.max(0, Math.min(100, percent));
+  const win = splashWindow;
+  if (!win || win.isDestroyed()) return;
+  win.webContents.executeJavaScript(`try { document.getElementById('progress').style.width = '${w}%'; } catch {}`).catch(() => {});
+}
+
+function splashStopFakeLoader() {
+  const win = splashWindow;
+  if (!win || win.isDestroyed()) return;
+  win.webContents.executeJavaScript('window.__stopFakeProgress = true;').catch(() => {});
+}
+
+/**
+ * Packaged builds only: show splash first, check GitHub for a newer version.
+ * If an update exists, download it before any main UI; then quit and install (no manual installer).
+ * If the check fails (offline), start normally. If download fails after an update was found, Retry/Quit only.
+ */
+async function runMandatoryUpdateGate(): Promise<boolean> {
+  if (!app.isPackaged) return true;
+
   autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoInstallOnAppQuit = false;
+  autoUpdater.allowPrerelease = false;
 
-  autoUpdater.on('update-available', (info) => {
-    // Notify splash if it's still open, otherwise notify main window
-    const win = splashWindow ?? mainWindow;
-    if (win && !win.isDestroyed()) {
-      win.webContents.executeJavaScript(`
-        try { document.getElementById('status').textContent = 'Downloading update v${info.version}...'; } catch {}
-      `).catch(() => {});
+  const onProgress = (p: { percent?: number }) => {
+    const pct = typeof p.percent === 'number' ? p.percent : 0;
+    splashSetProgress(Math.max(8, Math.min(95, pct)));
+  };
+  autoUpdater.on('download-progress', onProgress);
+
+  const waitForUpdateDownloaded = () =>
+    new Promise<void>((resolve, reject) => {
+      const t = setTimeout(() => {
+        cleanup();
+        reject(new Error('Update download timed out.'));
+      }, 15 * 60 * 1000);
+      const onOk = () => {
+        cleanup();
+        resolve();
+      };
+      const onErr = (e: unknown) => {
+        cleanup();
+        reject(e instanceof Error ? e : new Error(String(e)));
+      };
+      const cleanup = () => {
+        clearTimeout(t);
+        autoUpdater.off('update-downloaded', onOk);
+        autoUpdater.off('error', onErr);
+      };
+      autoUpdater.once('update-downloaded', onOk);
+      autoUpdater.once('error', onErr);
+    });
+
+  try {
+    splashStopFakeLoader();
+    splashSetStatus('Checking for updates…');
+    splashSetProgress(6);
+
+    let result;
+    try {
+      result = await autoUpdater.checkForUpdates();
+    } catch {
+      autoUpdater.off('download-progress', onProgress);
+      splashSetStatus('Starting…');
+      return true;
     }
-  });
 
-  autoUpdater.on('update-downloaded', () => {
-    // If the main window is visible, prompt to restart
-    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
-      dialog.showMessageBox(mainWindow, {
-        type: 'info',
-        title: 'Update ready',
-        message: 'A new version of Electra has been downloaded.',
-        detail: 'Restart now to apply the update.',
-        buttons: ['Restart', 'Later'],
-        defaultId: 0,
-      }).then(({ response }) => {
-        if (response === 0) {
-          isQuitting = true;
-          autoUpdater.quitAndInstall();
+    if (!result?.isUpdateAvailable) {
+      autoUpdater.off('download-progress', onProgress);
+      splashSetStatus('Starting…');
+      splashSetProgress(12);
+      return true;
+    }
+
+    const ver = result.updateInfo?.version ?? '';
+    splashSetStatus(ver ? `Downloading v${ver}…` : 'Downloading update…');
+    splashSetProgress(10);
+
+    try {
+      if (result.downloadPromise) {
+        await result.downloadPromise;
+      } else {
+        await waitForUpdateDownloaded();
+      }
+    } catch {
+      while (true) {
+        const dlgOpts = {
+          type: 'warning' as const,
+          title: 'Update required',
+          message: 'A new version of Electra is available but could not be downloaded.',
+          detail: 'Check your internet connection, then retry. You cannot use the app until the update is installed.',
+          buttons: ['Retry', 'Quit'],
+          defaultId: 0,
+          cancelId: 1,
+          noLink: true,
+        };
+        const { response } = splashWindow && !splashWindow.isDestroyed()
+          ? await dialog.showMessageBox(splashWindow, dlgOpts)
+          : await dialog.showMessageBox(dlgOpts);
+        if (response === 1) {
+          autoUpdater.off('download-progress', onProgress);
+          app.quit();
+          return false;
         }
-      });
-    } else {
-      // No window visible — just install on next quit
+        splashSetStatus(ver ? `Downloading v${ver}…` : 'Downloading update…');
+        try {
+          await autoUpdater.downloadUpdate();
+          break;
+        } catch {
+          /* loop */
+        }
+      }
     }
-  });
 
-  autoUpdater.on('error', () => {
-    // Silently ignore update errors — don't crash the app
-  });
+    splashSetStatus('Installing update…');
+    splashSetProgress(100);
+    autoUpdater.off('download-progress', onProgress);
 
-  // Check for updates (only in packaged app)
-  if (app.isPackaged) {
-    autoUpdater.checkForUpdates().catch(() => {});
+    isQuitting = true;
+    setTimeout(() => {
+      try {
+        autoUpdater.quitAndInstall(false, true);
+      } catch {
+        app.quit();
+      }
+    }, 450);
+
+    return false;
+  } catch {
+    autoUpdater.off('download-progress', onProgress);
+    splashSetStatus('Starting…');
+    return true;
   }
 }
 
@@ -189,26 +287,29 @@ function createTray() {
 
 // ─── Splash ──────────────────────────────────────────────────────────────────
 
-function createSplashWindow() {
-  splashWindow = new BrowserWindow({
-    width: 300,
-    height: 340,
-    frame: false,
-    transparent: false,
-    resizable: false,
-    center: true,
-    skipTaskbar: true,
-    alwaysOnTop: true,
-    backgroundColor: '#1a1a2e',
-    webPreferences: { nodeIntegration: false, contextIsolation: true },
+function createSplashWindow(): Promise<void> {
+  return new Promise((resolve) => {
+    splashWindow = new BrowserWindow({
+      width: 300,
+      height: 340,
+      frame: false,
+      transparent: false,
+      resizable: false,
+      center: true,
+      skipTaskbar: true,
+      alwaysOnTop: true,
+      backgroundColor: '#1a1a2e',
+      webPreferences: { nodeIntegration: false, contextIsolation: true },
+    });
+
+    const splashPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'splash.html')
+      : path.join(__dirname, 'splash.html');
+
+    splashWindow.webContents.once('did-finish-load', () => resolve());
+    splashWindow.loadFile(splashPath);
+    splashWindow.on('closed', () => { splashWindow = null; });
   });
-
-  const splashPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'splash.html')
-    : path.join(__dirname, 'splash.html');
-
-  splashWindow.loadFile(splashPath);
-  splashWindow.on('closed', () => { splashWindow = null; });
 }
 
 // ─── Main window ─────────────────────────────────────────────────────────────
@@ -335,7 +436,7 @@ function createMainWindow() {
 
 // ─── App lifecycle ────────────────────────────────────────────────────────────
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
 
   // Register app:// → resources/frontend file server
@@ -357,12 +458,13 @@ app.whenReady().then(() => {
       }
     });
 
-    createSplashWindow();
+    await createSplashWindow();
+    const proceed = await runMandatoryUpdateGate();
+    if (!proceed) return;
     createTray();
   }
 
   createMainWindow();
-  setupAutoUpdater();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
@@ -372,7 +474,7 @@ app.whenReady().then(() => {
   app.on('open-url', (_event, url) => {
     if (mainWindow) mainWindow.webContents.send('deep-link', url);
   });
-});
+}).catch((err) => console.error('Electra startup failed:', err));
 
 app.on('before-quit', () => { isQuitting = true; });
 

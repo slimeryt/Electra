@@ -1,6 +1,9 @@
 const path = require('path');
 const { execSync } = require('child_process');
 const fs = require('fs');
+
+// Skip Apple code-sign tool download on Windows (avoids symlink privilege errors on many dev machines).
+if (!process.env.CSC_IDENTITY_AUTO_DISCOVERY) process.env.CSC_IDENTITY_AUTO_DISCOVERY = 'false';
 const root = path.resolve(__dirname, '..', '..');
 
 // Ensure app-builder.exe is in the nested builder-util location electron-builder expects
