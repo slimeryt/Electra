@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 interface AvatarUser {
   display_name?: string;
   username?: string;
@@ -33,14 +35,18 @@ function hashColor(name = ''): string {
 export function Avatar({ user, size = 36, showStatus = false }: AvatarProps) {
   const name = user?.display_name || user?.username || '';
   const bg = hashColor(name);
+  const [imgError, setImgError] = useState(false);
+
+  const showImage = !!user?.avatar_url && !imgError;
 
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-      {user?.avatar_url ? (
+      {showImage ? (
         <img
-          src={user.avatar_url}
+          src={user!.avatar_url!}
           alt={name}
           style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+          onError={() => setImgError(true)}
         />
       ) : (
         <div style={{

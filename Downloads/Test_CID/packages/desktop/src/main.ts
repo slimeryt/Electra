@@ -389,7 +389,7 @@ function createMainWindow() {
     // Inject CSP for app:// pages
     if (!isDev) {
       headers['Content-Security-Policy'] = [
-        "default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self' http://localhost:* https://* ws://localhost:* wss://*",
+        "default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http://localhost:*; media-src 'self' blob: mediastream:; connect-src 'self' http://localhost:* https://* ws://localhost:* wss://*",
       ];
     } else {
       headers['Content-Security-Policy'] = [
