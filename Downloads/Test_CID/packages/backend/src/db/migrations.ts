@@ -2,34 +2,37 @@ import db from './connection';
 import fs from 'fs';
 import path from 'path';
 
+/**
+ * Apply schema.sql. Uses db.exec() on the whole DDL blob instead of splitting on ";",
+ * which is fragile (e.g. section comments glued to CREATE TABLE, or future semicolons
+ * inside CHECK/defaults).
+ */
 export function runMigrations() {
   const schemaPath = path.join(__dirname, 'schema.sql');
   const schema = fs.readFileSync(schemaPath, 'utf8');
 
-  // Run PRAGMAs separately
   db.exec('PRAGMA journal_mode = WAL;');
   db.exec('PRAGMA foreign_keys = ON;');
 
-  // Split and execute each statement
-  const statements = schema
-    .split(';')
-    .map(s => s.trim())
-    .filter(s => s.length > 0 && !s.startsWith('--') && !s.toUpperCase().startsWith('PRAGMA'));
+  const ddl = schema
+    .split('\n')
+    .filter((line) => {
+      const t = line.trim();
+      if (!t) return true;
+      if (t.startsWith('--')) return false;
+      if (/^PRAGMA\s+/i.test(t)) return false;
+      return true;
+    })
+    .join('\n')
+    .trim();
 
-  // Run CREATE TABLE / CREATE INDEX statements
+  if (!ddl) {
+    console.warn('migrations: no DDL left after stripping comments/PRAGMAs');
+    return;
+  }
+
   db.transaction(() => {
-    for (const stmt of statements) {
-      if (stmt) {
-        try {
-          db.prepare(stmt + ';').run();
-        } catch (e: any) {
-          // Ignore "already exists" errors for idempotency
-          if (!e.message?.includes('already exists')) {
-            throw e;
-          }
-        }
-      }
-    }
+    db.exec(ddl);
   })();
 
   console.log('Database migrations complete');
