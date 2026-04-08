@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
 import { useSocketEvents } from './hooks/useSocket';
@@ -12,6 +12,19 @@ import UserSettingsPage from './pages/UserSettingsPage';
 import ServerSettingsPage from './pages/ServerSettingsPage';
 import DiscoveryPage from './pages/DiscoveryPage';
 import WelcomePage from './pages/WelcomePage';
+
+// Listens for the auth:logout event fired by the axios interceptor when
+// token refresh fails, and navigates to /login via React Router (not window.location).
+function AuthLogoutListener() {
+  const navigate = useNavigate();
+  const { logout } = useAuthStore();
+  useEffect(() => {
+    const handler = () => { logout(); navigate('/login', { replace: true }); };
+    window.addEventListener('auth:logout', handler);
+    return () => window.removeEventListener('auth:logout', handler);
+  }, []);
+  return null;
+}
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
@@ -40,6 +53,7 @@ export default function App() {
     <BrowserRouter>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <ContextMenuProvider>
+        <AuthLogoutListener />
         <div style={{ display: 'contents' }} onContextMenu={e => e.preventDefault()}>
         <Routes>
           <Route path="/login" element={<AuthPage mode="login" />} />

@@ -346,7 +346,15 @@ app.whenReady().then(() => {
       const frontendDir = app.isPackaged
         ? path.join(process.resourcesPath, 'frontend')
         : path.join(__dirname, '../../frontend/dist');
-      callback({ path: path.join(frontendDir, decodeURIComponent(urlPath)) });
+      const filePath = path.join(frontendDir, decodeURIComponent(urlPath));
+      // SPA fallback: if the file doesn't exist (e.g. app:///login navigated via
+      // window.location.href), serve index.html and let React Router handle the route.
+      const fs = require('fs');
+      if (!fs.existsSync(filePath) || !filePath.includes('.')) {
+        callback({ path: path.join(frontendDir, 'index.html') });
+      } else {
+        callback({ path: filePath });
+      }
     });
 
     createSplashWindow();

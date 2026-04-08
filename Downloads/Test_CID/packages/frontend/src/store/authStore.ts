@@ -48,6 +48,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   checkAuth: async () => {
+    // Skip if already authenticated (e.g. just logged in) — avoids a redundant
+    // round-trip that shows a loading flash and can cause a blank screen on failure.
+    if (get().isAuthenticated) return;
     set({ isLoading: true });
     try {
       const token = localStorage.getItem('accessToken');

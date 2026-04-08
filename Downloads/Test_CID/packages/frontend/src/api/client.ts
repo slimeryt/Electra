@@ -43,7 +43,7 @@ client.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken');
         if (!refreshToken) throw new Error('No refresh token');
 
-        const { data } = await axios.post('/api/auth/refresh', { refresh_token: refreshToken });
+        const { data } = await axios.post(`${BASE}/api/auth/refresh`, { refresh_token: refreshToken });
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
 
@@ -55,7 +55,8 @@ client.interceptors.response.use(
       } catch {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        // Use hash-less navigation so the SPA handles routing correctly in Electron
+        window.dispatchEvent(new CustomEvent('auth:logout'));
       } finally {
         isRefreshing = false;
       }
