@@ -8,13 +8,16 @@ const BASE = isElectron
 
 const client = axios.create({
   baseURL: `${BASE}/api`,
-  headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach JWT to every request
+// Attach JWT + Content-Type to every request.
+// Skip Content-Type for FormData — the browser must set it (with the boundary).
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (!(config.data instanceof FormData)) {
+    config.headers['Content-Type'] = 'application/json';
+  }
   return config;
 });
 
