@@ -61,13 +61,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       if (isElectron) await hydrateAuthFromDisk();
 
-      let token = localStorage.getItem('accessToken');
-      if (!token) return set({ isLoading: false });
+      if (!localStorage.getItem('accessToken')) return set({ isLoading: false });
 
       const user = await authApi.me();
+      // Read tokens AFTER me() — the axios interceptor may have refreshed them.
+      // Using the pre-me() variable would save an expired token back to disk.
+      const token = localStorage.getItem('accessToken')!;
+      const rt = localStorage.getItem('refreshToken');
       set({ user, isAuthenticated: true });
       connectSocket(token);
-      const rt = localStorage.getItem('refreshToken');
       if (isElectron && rt) await persistAuthTokens(token, rt);
     } catch (e: unknown) {
       const status = axios.isAxiosError(e) ? e.response?.status : undefined;

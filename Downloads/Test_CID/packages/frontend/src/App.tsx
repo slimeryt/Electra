@@ -55,6 +55,7 @@ export default function App() {
     <BrowserRouter>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <ContextMenuProvider>
+        <ScreenSharePickerModal />
         <AuthLogoutListener />
         <ScreenSharePickerModal />
         <div style={{ display: 'contents' }} onContextMenu={e => e.preventDefault()}>
