@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { Pencil, Trash2, Clipboard, Link } from 'lucide-react';
-import { Message, DmMessage } from '../../types/models';
 import { Avatar } from '../ui/Avatar';
 import { FilePreview } from './FilePreview';
 import { format } from 'date-fns';
 import { channelsApi } from '../../api/channels';
+import { dmsApi } from '../../api/dms';
 import { getSocket } from '../../socket/client';
 import { useContextMenu } from '../../context/ContextMenuContext';
 import { useAuthStore } from '../../store/authStore';
+import { useMessageStore } from '../../store/messageStore';
+import type { Message, DmMessage } from '../../types/models';
 
 interface MessageItemProps {
   message: Message | DmMessage;
@@ -90,7 +92,17 @@ export function MessageItem({ message, isGrouped = false, isDm = false }: Messag
       return;
     }
     try {
-      await channelsApi.editMessage(message.id, editContent);
+      if (isDm) {
+        const dm = message as DmMessage;
+        const updated = await dmsApi.editMessage(dm.dm_id, message.id, editContent);
+        const editedAt = updated.edited_at ?? Math.floor(Date.now() / 1000);
+        useMessageStore.getState().updateDmMessage(dm.dm_id, message.id, updated.content ?? editContent, editedAt);
+      } else {
+        const ch = message as Message;
+        const updated = await channelsApi.editMessage(message.id, editContent);
+        const editedAt = updated.edited_at ?? Math.floor(Date.now() / 1000);
+        useMessageStore.getState().updateMessage(message.id, ch.channel_id, updated.content ?? editContent, editedAt);
+      }
       setIsEditing(false);
     } catch {
       setIsEditing(false);

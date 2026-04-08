@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import db from '../db/connection';
+import { getIo } from '../socket/index';
 
 const router = Router();
 router.use(requireAuth);
@@ -119,6 +120,17 @@ router.patch('/:dmId/messages/:messageId', (req: AuthRequest, res, next) => {
 
     const updated = db.prepare('UPDATE dm_messages SET content = ?, edited_at = unixepoch() WHERE id = ? RETURNING *').get(content, req.params.messageId) as any;
     const author = db.prepare('SELECT id, username, display_name, avatar_url FROM users WHERE id = ?').get(updated.author_id);
+    try {
+      const io = getIo();
+      io.to(`dm:${req.params.dmId}`).emit('dm_message_update', {
+        dm_id: req.params.dmId,
+        message_id: updated.id,
+        content: updated.content,
+        edited_at: updated.edited_at,
+      });
+    } catch {
+      /* socket not ready */
+    }
     res.json({ ...updated, author });
   } catch (e) { next(e); }
 });

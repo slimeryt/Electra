@@ -13,10 +13,20 @@ function clearPickerTimeout() {
   }
 }
 
+/** Electron throws if you pass `{}` when video was requested; still deny capture without crashing main. */
+function safeDenyDisplayMedia(cb: ((streams: Electron.Streams) => void) | null | undefined) {
+  if (!cb) return;
+  try {
+    cb({});
+  } catch (err) {
+    console.warn('[Electra] display-media deny failed (expected on some Electron versions):', err);
+  }
+}
+
 export function registerDisplayMediaHandler(getMainWindow: () => BrowserWindow | null) {
   session.defaultSession.setDisplayMediaRequestHandler(async (_request, callback) => {
     if (pendingDisplayMediaCallback) {
-      callback({});
+      safeDenyDisplayMedia(callback);
       return;
     }
 
@@ -26,7 +36,7 @@ export function registerDisplayMediaHandler(getMainWindow: () => BrowserWindow |
       const cb = pendingDisplayMediaCallback;
       pendingDisplayMediaCallback = null;
       pickerTimeout = null;
-      cb?.({});
+      safeDenyDisplayMedia(cb);
       getMainWindow()?.webContents.send('display-media:picker-close');
     }, PICKER_TIMEOUT_MS);
 
@@ -34,14 +44,13 @@ export function registerDisplayMediaHandler(getMainWindow: () => BrowserWindow |
       const sources = await desktopCapturer.getSources({
         types: ['screen', 'window'],
         thumbnailSize: { width: 320, height: 180 },
-        fetchWindowIcons: true,
       });
 
       const win = getMainWindow();
       if (!win || win.isDestroyed()) {
         pendingDisplayMediaCallback = null;
         clearPickerTimeout();
-        callback({});
+        safeDenyDisplayMedia(callback);
         return;
       }
 
@@ -56,7 +65,7 @@ export function registerDisplayMediaHandler(getMainWindow: () => BrowserWindow |
     } catch {
       pendingDisplayMediaCallback = null;
       clearPickerTimeout();
-      callback({});
+      safeDenyDisplayMedia(callback);
     }
   });
 
@@ -65,7 +74,7 @@ export function registerDisplayMediaHandler(getMainWindow: () => BrowserWindow |
 
   ipcMain.handle('display-media:select', async (event, sourceId: string) => {
     const main = getMainWindow();
-    if (!main || event.sender !== main.webContents) return { ok: false };
+    if (!main || main.isDestroyed() || event.sender.id !== main.webContents.id) return { ok: false };
 
     const cb = pendingDisplayMediaCallback;
     pendingDisplayMediaCallback = null;
@@ -85,16 +94,16 @@ export function registerDisplayMediaHandler(getMainWindow: () => BrowserWindow |
     } catch {
       /* fall through */
     }
-    cb({});
+    safeDenyDisplayMedia(cb);
     return { ok: false };
   });
 
   ipcMain.handle('display-media:cancel', (event) => {
     const main = getMainWindow();
-    if (!main || event.sender !== main.webContents) return;
+    if (!main || main.isDestroyed() || event.sender.id !== main.webContents.id) return;
     const cb = pendingDisplayMediaCallback;
     pendingDisplayMediaCallback = null;
     clearPickerTimeout();
-    cb?.({});
+    safeDenyDisplayMedia(cb);
   });
 }

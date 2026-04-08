@@ -37,6 +37,7 @@ export function registerChatHandlers(io: Server, socket: Socket) {
       const msg = messageService.updateMessage(data.message_id, userId, data.content);
       io.to(`channel:${(msg as any).channel_id}`).emit('message_update', {
         message_id: msg.id,
+        channel_id: (msg as any).channel_id,
         content: (msg as any).content,
         edited_at: (msg as any).edited_at,
       });

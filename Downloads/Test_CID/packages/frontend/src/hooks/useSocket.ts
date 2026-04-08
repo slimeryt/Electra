@@ -3,7 +3,7 @@ import { getSocket } from '../socket/client';
 import { useMessageStore, useVoiceStore, useAuthStore, useChannelStore, useFriendStore } from '../store';
 
 export function useSocketEvents() {
-  const { addMessage, updateMessage, deleteMessage, addDmMessage } = useMessageStore();
+  const { addMessage, updateMessage, deleteMessage, addDmMessage, updateDmMessage } = useMessageStore();
   const { addParticipant, removeParticipant, setParticipants, updateParticipant, setRemoteStream, setChannelParticipants, addChannelParticipant, removeChannelParticipant } = useVoiceStore();
   const { setUser } = useAuthStore();
   const { addChannel, updateChannel, removeChannel } = useChannelStore();
@@ -24,6 +24,10 @@ export function useSocketEvents() {
 
     socket.on('dm_message_create', ({ message }: any) => {
       addDmMessage(message);
+    });
+
+    socket.on('dm_message_update', ({ dm_id, message_id, content, edited_at }: any) => {
+      updateDmMessage(dm_id, message_id, content, edited_at);
     });
 
     socket.on('voice_room_state', ({ channel_id, participants }: any) => {
@@ -72,6 +76,7 @@ export function useSocketEvents() {
       socket.off('message_update');
       socket.off('message_delete');
       socket.off('dm_message_create');
+      socket.off('dm_message_update');
       socket.off('voice_room_state');
       socket.off('voice_user_join');
       socket.off('voice_user_leave');

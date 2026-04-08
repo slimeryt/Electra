@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import * as channelService from '../services/channelService';
 import * as messageService from '../services/messageService';
+import { getIo } from '../socket/index';
 
 const router = Router();
 router.use(requireAuth);
@@ -56,7 +57,19 @@ router.patch('/messages/:messageId', (req: AuthRequest, res, next) => {
   try {
     const { content } = req.body;
     if (!content) return res.status(400).json({ error: 'content required' });
-    res.json(messageService.updateMessage(req.params.messageId, req.userId!, content));
+    const updated = messageService.updateMessage(req.params.messageId, req.userId!, content);
+    try {
+      const io = getIo();
+      io.to(`channel:${updated.channel_id}`).emit('message_update', {
+        message_id: updated.id,
+        channel_id: updated.channel_id,
+        content: updated.content,
+        edited_at: updated.edited_at,
+      });
+    } catch {
+      /* socket not initialized (e.g. tests) */
+    }
+    res.json(updated);
   } catch (e) { next(e); }
 });
 
