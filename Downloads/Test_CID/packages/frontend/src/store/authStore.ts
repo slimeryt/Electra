@@ -1,9 +1,10 @@
 import { create } from 'zustand';
+import axios from 'axios';
 import { User } from '../types/models';
 import { authApi } from '../api/auth';
 import { connectSocket, disconnectSocket } from '../socket/client';
 import { isElectron } from '../env';
-import { clearPersistedAuth, persistAuthTokens } from '../lib/electronAuthPersist';
+import { clearPersistedAuth, hydrateAuthFromDisk, persistAuthTokens } from '../lib/electronAuthPersist';
 
 interface AuthState {
   user: User | null;
@@ -28,7 +29,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { user, accessToken, refreshToken } = await authApi.login(email, password);
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
-    if (isElectron) void persistAuthTokens(accessToken, refreshToken);
+    if (isElectron) await persistAuthTokens(accessToken, refreshToken);
     set({ user, isAuthenticated: true });
     connectSocket(accessToken);
   },
@@ -37,7 +38,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { user, accessToken, refreshToken } = await authApi.register(data);
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
-    if (isElectron) void persistAuthTokens(accessToken, refreshToken);
+    if (isElectron) await persistAuthTokens(accessToken, refreshToken);
     set({ user, isAuthenticated: true });
     connectSocket(accessToken);
   },
@@ -58,18 +59,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (get().isAuthenticated) return;
     set({ isLoading: true });
     try {
-      const token = localStorage.getItem('accessToken');
+      if (isElectron) await hydrateAuthFromDisk();
+
+      let token = localStorage.getItem('accessToken');
       if (!token) return set({ isLoading: false });
 
       const user = await authApi.me();
       set({ user, isAuthenticated: true });
       connectSocket(token);
       const rt = localStorage.getItem('refreshToken');
-      if (isElectron && rt) void persistAuthTokens(token, rt);
-    } catch {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      if (isElectron) void clearPersistedAuth();
+      if (isElectron && rt) await persistAuthTokens(token, rt);
+    } catch (e: unknown) {
+      const status = axios.isAxiosError(e) ? e.response?.status : undefined;
+      if (status === 401 || status === 403) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        if (isElectron) void clearPersistedAuth();
+      }
       set({ user: null, isAuthenticated: false });
     } finally {
       set({ isLoading: false });

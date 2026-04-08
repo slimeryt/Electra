@@ -10,13 +10,15 @@ export async function clearPersistedAuth(): Promise<void> {
   await bridge.clearAuthSession();
 }
 
-/** Restore tokens from disk when Chromium localStorage was cleared (e.g. reinstall / profile reset). */
+/** Restore tokens from disk when localStorage is missing either token (updates / profile reset). */
 export async function hydrateAuthFromDisk(): Promise<void> {
   if (!isElectron || !bridge?.loadAuthSession) return;
   try {
     const t = await bridge.loadAuthSession();
     if (!t?.accessToken || !t?.refreshToken) return;
-    if (!localStorage.getItem('refreshToken')) {
+    const hasAccess = !!localStorage.getItem('accessToken');
+    const hasRefresh = !!localStorage.getItem('refreshToken');
+    if (!hasAccess || !hasRefresh) {
       localStorage.setItem('accessToken', t.accessToken);
       localStorage.setItem('refreshToken', t.refreshToken);
     }
