@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { safeStorage } from 'electron';
 
 /** OS app data (outside ~/Electra/Data) so sessions survive clearing that folder or certain updates. */
 function getPrimarySessionFile(): string {
@@ -33,14 +32,7 @@ function ensureDirFor(file: string) {
 function readTokensFromFile(sessionFile: string): SessionTokens | null {
   try {
     if (!fs.existsSync(sessionFile)) return null;
-    const raw = fs.readFileSync(sessionFile);
-    const text =
-      raw.length > 0 && raw[0] === 0x7b
-        ? raw.toString('utf8')
-        : safeStorage.isEncryptionAvailable()
-          ? safeStorage.decryptString(raw)
-          : raw.toString('utf8');
-    const data = JSON.parse(text) as SessionTokens;
+    const data = JSON.parse(fs.readFileSync(sessionFile, 'utf8')) as SessionTokens;
     if (!data?.accessToken || !data?.refreshToken) return null;
     return data;
   } catch {
@@ -51,12 +43,7 @@ function readTokensFromFile(sessionFile: string): SessionTokens | null {
 export function saveSessionTokens(accessToken: string, refreshToken: string): void {
   const primary = getPrimarySessionFile();
   ensureDirFor(primary);
-  const payload = JSON.stringify({ accessToken, refreshToken });
-  if (safeStorage.isEncryptionAvailable()) {
-    fs.writeFileSync(primary, safeStorage.encryptString(payload));
-  } else {
-    fs.writeFileSync(primary, payload, 'utf8');
-  }
+  fs.writeFileSync(primary, JSON.stringify({ accessToken, refreshToken }), 'utf8');
   const legacy = getLegacySessionFile();
   try {
     if (fs.existsSync(legacy)) fs.unlinkSync(legacy);
