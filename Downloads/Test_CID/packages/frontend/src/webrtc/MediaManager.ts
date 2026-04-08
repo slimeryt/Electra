@@ -16,9 +16,13 @@ class MediaManagerClass {
   }
 
   async getScreenStream(fps: number = 30, width: number = 1280, height: number = 720): Promise<MediaStream> {
+    // Electron: system-audio loopback often fails on Windows and can reject the entire capture.
+    // Mic is already in the voice stream; screen video alone is enough.
+    const inElectron =
+      typeof window !== 'undefined' && typeof (window as unknown as { electraBridge?: unknown }).electraBridge !== 'undefined';
     return (navigator.mediaDevices as any).getDisplayMedia({
       video: { width: { ideal: width }, height: { ideal: height }, frameRate: { ideal: fps, max: fps } },
-      audio: true,
+      audio: !inElectron,
     });
   }
 

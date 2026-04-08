@@ -1,0 +1,18 @@
+---
+description: Publish GitHub release right after Electra code changes
+globs:
+alwaysApply: true
+---
+
+After completing any fix or feature that touches **desktop**, **frontend** (Electron/voice/screen share), or **release-relevant backend**, do **immediately** in the same session:
+
+1. Bump **`packages/desktop/package.json`** `version` (patch +1 unless user asked otherwise).
+2. From **`packages/desktop`**, run **`node build-win.js`** and confirm **`release/latest.yml`** matches the new version.
+3. From git root **`C:\Users\slime`** (or the repo root that contains `Downloads/Test_CID`), **`git add`** only the intended paths under `Downloads/Test_CID/`, **commit**, **`git push origin master`**.
+4. **`git tag -a vX.Y.Z`** (message one line), **`git push origin vX.Y.Z`** (replace remote tag if redoing same version).
+5. **`gh release create vX.Y.Z -R slimeryt/Electra`** with title, notes, and attach:
+   - `Downloads/Test_CID/packages/desktop/release/ElectraInstaller.exe`
+   - `Downloads/Test_CID/packages/desktop/release/latest.yml`
+   - `Downloads/Test_CID/packages/desktop/release/ElectraInstaller.exe.blockmap`
+
+Do **not** end the task with only local edits; shipping the release is part of “done.” Use full paths for `gh` assets on Windows if needed; `gh.exe` may live at `C:\Program Files\GitHub CLI\gh.exe`.

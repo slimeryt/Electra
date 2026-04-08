@@ -3,6 +3,7 @@ import { getSocket } from '../../socket/client';
 import { useVoiceStore } from '../../store/voiceStore';
 import { useAuthStore } from '../../store/authStore';
 import { useStreamSettingsStore, QUALITY_MAP } from '../../store/streamSettingsStore';
+import { bridge, isElectron } from '../../env';
 import { MediaManager } from '../MediaManager';
 import { PeerManager } from '../PeerManager';
 
@@ -184,7 +185,14 @@ export function useVoiceChannel() {
         };
         setScreenSharing(true);
         if (activeChannelId) socket.emit('screen_share_start', { channel_id: activeChannelId });
-      } catch { /* user denied */ }
+      } catch {
+        if (isElectron && bridge?.showNotification) {
+          void bridge.showNotification(
+            'Screen share',
+            'Could not start. Pick a screen or window in the picker, or check that Electra is allowed to capture the display.'
+          );
+        }
+      }
     }
   }, [isScreenSharing, localStream, activeChannelId, fps, width, height, socket, setLocalStream, setScreenSharing]);
 
