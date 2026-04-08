@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Hash, Volume2, Megaphone, ChevronDown, ChevronRight, Plus, CheckCheck, Clipboard, Pencil, Trash2, PhoneOff, Mic, MicOff } from 'lucide-react';
+import { Hash, Volume2, Megaphone, ChevronDown, ChevronRight, Plus, CheckCheck, Clipboard, Pencil, Trash2 } from 'lucide-react';
 import { useChannelStore } from '../../store/channelStore';
 import { useServerStore } from '../../store/serverStore';
 import { useAuthStore } from '../../store/authStore';
@@ -9,7 +9,6 @@ import { Channel } from '../../types/models';
 import { ChannelCreateModal } from '../server/ChannelCreateModal';
 import { useContextMenu } from '../../context/ContextMenuContext';
 import { channelsApi } from '../../api/channels';
-import { useVoiceChannel } from '../../webrtc/hooks/useVoiceChannel';
 import { Avatar } from '../ui/Avatar';
 
 interface ChannelIconProps {
@@ -26,8 +25,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
   const { channelsByServer, activeChannelId, setActiveChannel, fetchChannels, removeChannel } = useChannelStore();
   const { servers } = useServerStore();
   const { user } = useAuthStore();
-  const { activeChannelId: activeVoiceChannelId, channelParticipants, isMuted } = useVoiceStore();
-  const { leaveChannel, toggleMute } = useVoiceChannel();
+  const { activeChannelId: activeVoiceChannelId, channelParticipants } = useVoiceStore();
   const navigate = useNavigate();
   const { show } = useContextMenu();
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -82,7 +80,8 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
 
   return (
     <div style={{
-      width: 240,
+      width: '100%',
+      height: '100%',
       background: 'var(--bg-elevated)',
       borderRadius: 'var(--radius-lg)',
       boxShadow: 'var(--shadow-panel)',
@@ -231,64 +230,6 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
           </div>
         ))}
       </div>
-
-      {/* Persistent voice connected bar */}
-      {activeVoiceChannelId && (() => {
-        const voiceChannel = channels.find(c => c.id === activeVoiceChannelId);
-        return (
-          <div style={{
-            margin: '0 8px 8px', padding: '8px 10px',
-            background: 'rgba(34,197,94,0.08)',
-            border: '1px solid rgba(34,197,94,0.18)',
-            borderRadius: 'var(--radius-md)',
-            flexShrink: 0,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <span style={{
-                width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', flexShrink: 0,
-                boxShadow: '0 0 6px rgba(34,197,94,0.6)',
-              }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', flex: 1, letterSpacing: '0.03em' }}>
-                Voice Connected
-              </span>
-            </div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Volume2 size={11} />
-              {voiceChannel?.name || 'Voice Channel'}
-            </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button
-                onClick={toggleMute}
-                title={isMuted ? 'Unmute' : 'Mute'}
-                style={{
-                  flex: 1, height: 26, borderRadius: 'var(--radius-sm)', border: 'none',
-                  background: isMuted ? 'rgba(240,71,71,0.2)' : 'var(--bg-hover)',
-                  color: isMuted ? 'var(--danger)' : 'var(--text-muted)',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                  fontSize: 11, fontWeight: 500, transition: 'all 150ms',
-                }}
-              >
-                {isMuted ? <MicOff size={11} /> : <Mic size={11} />}
-                {isMuted ? 'Unmute' : 'Mute'}
-              </button>
-              <button
-                onClick={() => { leaveChannel(); navigate(`/app/servers/${serverId}`); }}
-                title="Disconnect"
-                style={{
-                  flex: 1, height: 26, borderRadius: 'var(--radius-sm)', border: 'none',
-                  background: 'rgba(240,71,71,0.15)', color: 'var(--danger)',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                  fontSize: 11, fontWeight: 500, transition: 'all 150ms',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(240,71,71,0.28)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(240,71,71,0.15)'; }}
-              >
-                <PhoneOff size={11} /> Disconnect
-              </button>
-            </div>
-          </div>
-        );
-      })()}
 
       {isAdminOrOwner && (
         <ChannelCreateModal

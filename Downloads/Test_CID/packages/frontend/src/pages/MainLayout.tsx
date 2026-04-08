@@ -24,31 +24,32 @@ export default function MainLayout() {
   );
 
   return (
-    <div style={{
-      display: 'flex',
-      height: '100vh',
-      width: '100vw',
-      overflow: 'hidden',
-      /* Atmospheric background — panels float above this */
-      background: 'var(--bg-base)',
-      backgroundImage: [
-        'radial-gradient(ellipse 80% 60% at 10% 70%, rgba(88,101,242,0.09) 0%, transparent 55%)',
-        'radial-gradient(ellipse 60% 45% at 90% 15%, rgba(124,58,237,0.07) 0%, transparent 50%)',
-        'radial-gradient(ellipse 50% 60% at 50% 110%, rgba(88,101,242,0.07) 0%, transparent 60%)',
-      ].join(', '),
-      padding: 8,
-      gap: 6,
-    }}>
-      {/* Server rail — narrow floating pill */}
-      <ServerSidebar />
+    <div
+      className="app-shell"
+      style={{
+        /* Atmospheric background — panels float above this */
+        background: 'var(--bg-base)',
+        backgroundImage: [
+          'radial-gradient(ellipse 80% 60% at 10% 70%, rgba(88,101,242,0.09) 0%, transparent 55%)',
+          'radial-gradient(ellipse 60% 45% at 90% 15%, rgba(124,58,237,0.07) 0%, transparent 50%)',
+          'radial-gradient(ellipse 50% 60% at 50% 110%, rgba(88,101,242,0.07) 0%, transparent 60%)',
+        ].join(', '),
+      }}
+    >
+      <div className="app-shell-rail">
+        <ServerSidebar />
+      </div>
 
-      {/* Second sidebar: channel list or DM list */}
       {activeServerId ? (
-        <ChannelSidebar serverId={activeServerId} />
+        <div className="app-shell-channels">
+          <ChannelSidebar serverId={activeServerId} />
+        </div>
       ) : showDmSidebar ? (
-        /* DM sidebar — floating panel */
+        <div className="app-shell-channels">
         <div style={{
-          width: 240,
+          width: '100%',
+          height: '100%',
+          minHeight: 200,
           background: 'var(--bg-elevated)',
           borderRadius: 'var(--radius-lg)',
           boxShadow: 'var(--shadow-panel)',
@@ -109,24 +110,25 @@ export default function MainLayout() {
             <DMList />
           </div>
         </div>
+        </div>
       ) : null}
 
-      {/* Main content — floating card */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        minWidth: 0,
-        background: 'var(--bg-elevated)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-panel)',
-      }}>
+      <div
+        className="app-shell-main"
+        style={{
+          background: 'var(--bg-elevated)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-panel)',
+        }}
+      >
         <Outlet />
       </div>
 
-      {/* Member list — floating right panel */}
-      {activeServerId && <MemberList serverId={activeServerId} />}
+      {activeServerId && (
+        <div className="app-shell-members">
+          <MemberList serverId={activeServerId} />
+        </div>
+      )}
 
       {/* User panel — fixed floating overlay at bottom-left */}
       <UserPanel />

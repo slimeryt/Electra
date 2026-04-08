@@ -10,7 +10,171 @@
 html, body, #root {
   height: 100%;
   width: 100%;
+  max-width: 100vw;
   overflow: hidden;
+}
+
+/* ─── App shell (MainLayout) — scales with window / viewport ───────────────── */
+.app-shell {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100vw;
+  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: clamp(4px, 1.2vw, 10px);
+  gap: clamp(4px, 1vw, 8px);
+  overflow: hidden;
+}
+
+.app-shell-rail {
+  flex-shrink: 0;
+}
+
+.app-shell-channels {
+  flex: 0 1 240px;
+  min-width: 0;
+  max-width: 240px;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell-channels > * {
+  width: 100%;
+  min-width: 0;
+}
+
+.app-shell-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-shell-members {
+  flex: 0 1 224px;
+  min-width: 0;
+  max-width: 224px;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell-members > * {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 960px) {
+  .app-shell {
+    flex-wrap: wrap;
+    align-content: flex-start;
+    height: auto;
+    max-height: none;
+    min-height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .app-shell-rail {
+    order: 0;
+  }
+
+  .app-shell-channels {
+    order: 1;
+    flex: 1 1 auto;
+    max-width: min(240px, 100%);
+    min-width: min(200px, 45vw);
+  }
+
+  .app-shell-members {
+    order: 2;
+    flex: 1 1 auto;
+    max-width: min(224px, 100%);
+    min-width: min(180px, 42vw);
+  }
+
+  .app-shell-main {
+    order: 3;
+    flex: 1 1 100%;
+    min-height: min(520px, 62vh);
+  }
+}
+
+@media (max-width: 560px) {
+  .app-shell-channels,
+  .app-shell-members {
+    flex: 1 1 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .app-shell-main {
+    min-height: min(480px, 55vh);
+  }
+}
+
+/* User panel: don’t overflow narrow viewports */
+.user-panel-dock {
+  max-width: min(360px, calc(100vw - 16px));
+}
+
+@media (max-width: 480px) {
+  .user-panel-dock {
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+  }
+}
+
+/* Roles editor: stack on small screens */
+.roles-editor-layout {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  height: 100%;
+  min-height: min(400px, 50vh);
+}
+
+.roles-editor-list {
+  width: 200px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.roles-editor-body {
+  flex: 1;
+  min-width: 0;
+  padding-left: clamp(12px, 3vw, 24px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (max-width: 640px) {
+  .roles-editor-layout {
+    flex-direction: column;
+  }
+
+  .roles-editor-list {
+    width: 100% !important;
+    max-height: 38vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .roles-editor-body {
+    padding-left: 0;
+    padding-top: 12px;
+  }
 }
 
 body {

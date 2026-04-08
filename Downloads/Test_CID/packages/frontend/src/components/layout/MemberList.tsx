@@ -40,7 +40,8 @@ export function MemberList({ serverId }: { serverId: string }) {
 
   return (
     <div style={{
-      width: 224,
+      width: '100%',
+      height: '100%',
       background: 'var(--bg-elevated)',
       borderRadius: 'var(--radius-lg)',
       boxShadow: 'var(--shadow-panel)',

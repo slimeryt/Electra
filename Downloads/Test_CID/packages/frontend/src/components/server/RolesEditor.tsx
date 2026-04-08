@@ -4,6 +4,7 @@ import { ServerRole, Permissions } from '../../types/models';
 import { rolesApi } from '../../api/roles';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { ConfirmModal } from '../ui/ConfirmModal';
 
 const PERMISSION_LABELS: { key: keyof typeof Permissions; label: string; description: string }[] = [
   { key: 'VIEW_CHANNELS',    label: 'View Channels',     description: 'Allows members to view text channels.' },
@@ -36,6 +37,8 @@ export function RolesEditor({ serverId }: { serverId: string }) {
   const [saved, setSaved] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<ServerRole | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     rolesApi.list(serverId).then(r => {
@@ -90,28 +93,41 @@ export function RolesEditor({ serverId }: { serverId: string }) {
     }
   };
 
-  const handleDelete = async (role: ServerRole) => {
-    if (!confirm(`Delete role "${role.name}"?`)) return;
+  const executeDelete = async () => {
+    const role = pendingDelete;
+    if (!role) return;
+    setDeleting(true);
+    setError('');
     try {
       await rolesApi.delete(serverId, role.id);
       const next = roles.filter(r => r.id !== role.id);
       setRoles(next);
+      setPendingDelete(null);
       if (selected?.id === role.id) {
         if (next.length > 0) selectRole(next[0]);
         else setSelected(null);
       }
     } catch (e: any) {
-      alert(e.response?.data?.error || 'Failed to delete');
+      setError(e.response?.data?.error || 'Failed to delete role');
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
-    <div style={{ display: 'flex', gap: 0, height: '100%', minHeight: 400 }}>
-      {/* Roles list */}
-      <div style={{
-        width: 200, flexShrink: 0, borderRight: '1px solid var(--border)',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      }}>
+    <div className="roles-editor-layout">
+      <ConfirmModal
+        isOpen={!!pendingDelete}
+        title="Delete role"
+        message={pendingDelete ? `Delete “${pendingDelete.name}”? Members will lose this role. This cannot be undone.` : ''}
+        confirmLabel="Delete role"
+        cancelLabel="Cancel"
+        danger
+        isWorking={deleting}
+        onConfirm={executeDelete}
+        onCancel={() => { if (!deleting) setPendingDelete(null); }}
+      />
+      <div className="roles-editor-list">
         <div style={{ padding: '0 0 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
             Roles — {roles.length}
@@ -151,7 +167,7 @@ export function RolesEditor({ serverId }: { serverId: string }) {
 
       {/* Editor */}
       {selected ? (
-        <div style={{ flex: 1, paddingLeft: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div className="roles-editor-body">
           {/* Name + Color */}
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
@@ -252,7 +268,7 @@ export function RolesEditor({ serverId }: { serverId: string }) {
               {saved ? '✓ Saved!' : 'Save Changes'}
             </Button>
             {!selected.is_default && (
-              <Button variant="danger" size="sm" onClick={() => handleDelete(selected)}>
+              <Button variant="danger" size="sm" onClick={() => setPendingDelete(selected)}>
                 <Trash2 size={13} style={{ marginRight: 4 }} /> Delete Role
               </Button>
             )}

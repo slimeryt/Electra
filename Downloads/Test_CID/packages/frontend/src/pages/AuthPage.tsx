@@ -42,9 +42,13 @@ export default function AuthPage({ mode }: AuthPageProps) {
   return (
     <div style={{
       display: 'flex',
-      height: '100vh',
+      flexWrap: 'wrap',
+      minHeight: '100dvh',
+      width: '100%',
+      maxWidth: '100vw',
       background: 'var(--bg-base)',
-      overflow: 'hidden',
+      overflowX: 'hidden',
+      overflowY: 'auto',
     }}>
       {/* Left decorative panel */}
       <div style={{

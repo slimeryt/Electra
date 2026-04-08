@@ -38,7 +38,7 @@ export function Modal({ isOpen, onClose, title, children, width = 480 }: ModalPr
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: 24,
+            padding: 'clamp(12px, 4vw, 24px)',
           }}
         >
           <motion.div
@@ -51,7 +51,7 @@ export function Modal({ isOpen, onClose, title, children, width = 480 }: ModalPr
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius-lg)',
               width: '100%',
-              maxWidth: width,
+              maxWidth: `min(${width}px, calc(100vw - 32px))`,
               boxShadow: 'var(--shadow-lg)',
               overflow: 'hidden',
             }}
