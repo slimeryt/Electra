@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Electra — Chat. Voice. Together.</title>
+  <meta name="description" content="A fast, private Discord alternative. Real-time messaging, voice & video, file sharing. Download free for Windows." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #060608;
+      --bg-card:   #0c0c14;
+      --bg-hover:  #111119;
+      --border:    rgba(255,255,255,0.06);
+      --border-strong: rgba(255,255,255,0.10);
+      --text:      #f0f0f4;
+      --muted:     #6b6b80;
+      --accent:    #5865f2;
+      --accent2:   #7c3aed;
+      --gradient:  linear-gradient(135deg, #5865f2 0%, #7c3aed 100%);
+      --radius:    14px;
+      --ease:      cubic-bezier(.4,0,.2,1);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise texture overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      background: rgba(6,6,8,0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      background: var(--gradient);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(88,101,242,0.4);
+    }
+    .logo-name {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 200ms var(--ease);
+    }
+    .nav-links a:hover { color: var(--text); }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 200ms var(--ease);
+      border: none;
+    }
+    .btn-primary {
+      background: var(--gradient);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(88,101,242,0.35);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(88,101,242,0.5);
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+    }
+    .btn-outline:hover {
+      background: var(--bg-hover);
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-glow {
+      position: absolute;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(88,101,242,0.14) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hero-glow2 {
+      position: absolute;
+      top: 30%;
+      left: 20%;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(ellipse, rgba(124,58,237,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 99px;
+      background: rgba(88,101,242,0.12);
+      border: 1px solid rgba(88,101,242,0.28);
+      color: #a5adff;
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-bottom: 28px;
+      letter-spacing: 0.02em;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    .hero h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: clamp(2.8rem, 7vw, 5.2rem);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      margin-bottom: 22px;
+      background: linear-gradient(135deg, #f0f0f4 20%, rgba(160,160,200,0.6) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero h1 span {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: clamp(15px, 2vw, 18px);
+      color: var(--muted);
+      max-width: 520px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 72px;
+    }
+    .btn-lg {
+      padding: 14px 28px;
+      font-size: 15px;
+      border-radius: 12px;
+    }
+
+    /* ── App mockup ── */
+    .mockup-wrap {
+      width: 100%;
+      max-width: 860px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .mockup-glow {
+      position: absolute;
+      bottom: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      height: 100px;
+      background: radial-gradient(ellipse, rgba(88,101,242,0.3) 0%, transparent 70%);
+      pointer-events: none;
+      filter: blur(20px);
+    }
+    .mockup {
+      background: #0c0c14;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 40px 120px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04);
+      display: flex;
+      height: 420px;
+      position: relative;
+    }
+    /* Server rail */
+    .mock-rail {
+      width: 60px;
+      background: #060608;
+      border-right: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 0;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .mock-server {
+      width: 38px; height: 38px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      color: #fff;
+      cursor: pointer;
+      transition: border-radius 200ms;
+    }
+    .mock-server:hover { border-radius: 14px; }
+    .mock-server.active {
+      background: var(--gradient);
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(88,101,242,0.4);
+    }
+    .mock-server.plain { background: #1a1a2e; }
+    .mock-server.plain2 { background: #1a2e1e; }
+    .mock-server.plain3 { background: #2e1a1a; }
+    .mock-sep { width: 28px; height: 1px; background: rgba(255,255,255,0.06); margin: 2px 0; }
+    /* Sidebar */
+    .mock-sidebar {
+      width: 200px;
+      background: #0a0a10;
+      border-right: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .mock-server-name {
+      padding: 14px 12px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      background: linear-gradient(135deg, rgba(88,101,242,0.08) 0%, transparent 100%);
+    }
+    .mock-category {
+      padding: 14px 10px 4px;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #444460;
+    }
+    .mock-channel {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      margin: 1px 6px;
+      font-size: 12.5px;
+      color: #6b6b80;
+    }
+    .mock-channel.active { background: rgba(88,101,242,0.18); color: var(--text); }
+    .mock-channel:hover { background: rgba(255,255,255,0.04); color: #b0b0c0; }
+    .mock-ch-icon { font-size: 13px; opacity: 0.7; }
+    /* Main chat */
+    .mock-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .mock-topbar {
+      padding: 0 16px;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      flex-shrink: 0;
+    }
+    .mock-topbar-icon { font-size: 14px; color: var(--muted); }
+    .mock-topbar-name { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 13px; }
+    .mock-messages {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow: hidden;
+    }
+    .mock-msg { display: flex; gap: 10px; align-items: flex-start; }
+    .mock-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      color: #fff;
+    }
+    .mock-msg-body { flex: 1; }
+    .mock-msg-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+    .mock-msg-name { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 12px; }
+    .mock-msg-time { font-size: 10px; color: var(--muted); }
+    .mock-msg-text { font-size: 12.5px; color: #b0b0c0; line-height: 1.5; }
+    .mock-bar {
+      margin: 0 12px 12px;
+      background: #111119;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .mock-bar-text { font-size: 12px; color: var(--muted); flex: 1; }
+    .mock-bar-send {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      background: var(--gradient);
+      display: flex; align-items: center; justify-content: center;
+    }
+    /* Member panel */
+    .mock-members {
+      width: 160px;
+      background: #08080e;
+      border-left: 1px solid rgba(255,255,255,0.05);
+      padding: 12px 8px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .mock-members-title {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #444460;
+      padding: 4px 8px 8px;
+    }
+    .mock-member {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    .mock-member-av {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 10px;
+      color: #fff;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .mock-status {
+      position: absolute;
+      bottom: -1px; right: -1px;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      border: 2px solid #08080e;
+    }
+    .mock-member-name { font-size: 11.5px; color: #7070a0; }
+
+    /* ── Shimmer line for bar ── */
+    @keyframes shimmer {
+      0% { opacity: 0.4; }
+      50% { opacity: 0.9; }
+      100% { opacity: 0.4; }
+    }
+    .mock-typing { animation: shimmer 1.8s ease-in-out infinite; }
+
+    /* ── Features ── */
+    .section { padding: 100px 24px; position: relative; }
+    .section-label {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-family: 'Poppins', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      color: var(--muted);
+      max-width: 480px;
+      font-size: 15px;
+      line-height: 1.7;
+      margin-bottom: 56px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .feat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      transition: all 240ms var(--ease);
+      cursor: default;
+    }
+    .feat-card:hover {
+      border-color: rgba(88,101,242,0.3);
+      background: rgba(88,101,242,0.05);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(88,101,242,0.12);
+    }
+    .feat-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: rgba(88,101,242,0.12);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px;
+      color: var(--accent);
+    }
+    .feat-title {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+    .feat-desc { font-size: 13.5px; color: var(--muted); line-height: 1.65; }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0 24px;
+    }
+
+    /* ── Stats ── */
+    .stats {
+      padding: 70px 24px;
+      display: flex;
+      justify-content: center;
+      gap: 60px;
+      flex-wrap: wrap;
+      position: relative;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-family: 'Poppins', sans-serif;
+      font-size: 2.6rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .stat-label { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+    /* ── How it works ── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .step {
+      padding: 32px 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      position: relative;
+    }
+    .step-num {
+      font-family: 'Poppins', sans-serif;
+      font-size: 3.5rem;
+      font-weight: 900;
+      letter-spacing: -0.06em;
+      line-height: 1;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      opacity: 0.2;
+      margin-bottom: 16px;
+    }
+    .step-title {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 15.5px;
+      margin-bottom: 8px;
+    }
+    .step-desc { font-size: 13.5px; color: var(--muted); line-height: 1.65; }
+
+    /* ── CTA section ── */
+    .cta-section {
+      padding: 100px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 300px;
+      background: radial-gradient(ellipse, rgba(88,101,242,0.15) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .cta-box {
+      background: linear-gradient(135deg, rgba(88,101,242,0.08) 0%, rgba(124,58,237,0.05) 100%);
+      border: 1px solid rgba(88,101,242,0.2);
+      border-radius: 24px;
+      padding: 64px 40px;
+      max-width: 680px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .cta-box h2 {
+      font-family: 'Poppins', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 14px;
+    }
+    .cta-box p { color: var(--muted); font-size: 15px; margin-bottom: 36px; line-height: 1.7; }
+    .cta-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 24px;
+    }
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .footer-copy { font-size: 13px; color: var(--muted); }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 200ms;
+    }
+    .footer-links a:hover { color: var(--text); }
+
+    /* ── SVG Icons ── */
+    .icon { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .icon-sm { width: 16px; height: 16px; }
+    .icon-xs { width: 12px; height: 12px; }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.7s var(--ease) both; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fade-up { animation: none; }
+      .badge-dot { animation: none; }
+      .mock-typing { animation: none; }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .features-grid, .steps { grid-template-columns: 1fr; }
+      .stats { gap: 36px; }
+      .mockup { height: 300px; }
+      .mock-members { display: none; }
+      .mock-rail { width: 50px; }
+      .mock-sidebar { width: 160px; }
+      .cta-box { padding: 40px 24px; }
+      .hero { padding: 100px 24px 60px; }
+    }
+    @media (max-width: 480px) {
+      .mock-sidebar { display: none; }
+      .features-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="nav-inner">
+      <a class="logo" href="#">
+        <div class="logo-icon">
+          <svg class="icon" style="width:18px;height:18px;stroke-width:2.5;fill:#fff;stroke:#fff" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <span class="logo-name">Electra</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="https://github.com/slimeryt/Electra" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+      <a class="btn btn-primary" href="https://github.com/slimeryt/Electra/releases/latest/download/ElectraInstaller.exe">
+        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download
+      </a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-glow2"></div>
+    <div class="badge fade-up">
+      <span class="badge-dot"></span>
+      Free &amp; Open Source
+    </div>
+    <h1 class="fade-up delay-1">Chat. Voice.<br /><span>Together.</span></h1>
+    <p class="fade-up delay-2">A fast, private alternative to Discord. Real-time messaging, crystal-clear voice &amp; video, and file sharing — all in one app.</p>
+    <div class="hero-actions fade-up delay-3">
+      <a class="btn btn-primary btn-lg" href="https://github.com/slimeryt/Electra/releases/latest/download/ElectraInstaller.exe">
+        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download for Windows
+      </a>
+      <a class="btn btn-outline btn-lg" href="https://github.com/slimeryt/Electra" target="_blank" rel="noopener">
+        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        View on GitHub
+      </a>
+    </div>
+
+    <!-- App mockup -->
+    <div class="mockup-wrap fade-up delay-4">
+      <div class="mockup-glow"></div>
+      <div class="mockup">
+        <!-- Rail -->
+        <div class="mock-rail">
+          <div class="mock-server active">E</div>
+          <div class="mock-sep"></div>
+          <div class="mock-server plain">G</div>
+          <div class="mock-server plain2">D</div>
+          <div class="mock-server plain3">R</div>
+        </div>
+        <!-- Sidebar -->
+        <div class="mock-sidebar">
+          <div class="mock-server-name">Electra HQ</div>
+          <div class="mock-category">Text Channels</div>
+          <div class="mock-channel active">
+            <span class="mock-ch-icon">#</span> general
+          </div>
+          <div class="mock-channel">
+            <span class="mock-ch-icon">#</span> announcements
+          </div>
+          <div class="mock-channel">
+            <span class="mock-ch-icon">#</span> dev-talk
+          </div>
+          <div class="mock-category">Voice Channels</div>
+          <div class="mock-channel">
+            <svg style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            &nbsp;Lounge
+          </div>
+          <div class="mock-channel">
+            <svg style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            &nbsp;Gaming
+          </div>
+        </div>
+        <!-- Main -->
+        <div class="mock-main">
+          <div class="mock-topbar">
+            <span class="mock-topbar-icon">#</span>
+            <span class="mock-topbar-name">general</span>
+          </div>
+          <div class="mock-messages">
+            <div class="mock-msg">
+              <div class="mock-avatar" style="background:linear-gradient(135deg,#5865f2,#7c3aed)">S</div>
+              <div class="mock-msg-body">
+                <div class="mock-msg-header">
+                  <span class="mock-msg-name" style="color:#a5adff">slime</span>
+                  <span class="mock-msg-time">Today at 14:22</span>
+                </div>
+                <div class="mock-msg-text">Hey everyone! Welcome to Electra 👋</div>
+              </div>
+            </div>
+            <div class="mock-msg">
+              <div class="mock-avatar" style="background:linear-gradient(135deg,#22c55e,#16a34a)">A</div>
+              <div class="mock-msg-body">
+                <div class="mock-msg-header">
+                  <span class="mock-msg-name" style="color:#86efac">alex</span>
+                  <span class="mock-msg-time">Today at 14:23</span>
+                </div>
+                <div class="mock-msg-text">This UI looks incredible, love the dark theme!</div>
+              </div>
+            </div>
+            <div class="mock-msg">
+              <div class="mock-avatar" style="background:linear-gradient(135deg,#f59e0b,#d97706)">J</div>
+              <div class="mock-msg-body">
+                <div class="mock-msg-header">
+                  <span class="mock-msg-name" style="color:#fcd34d">jake</span>
+                  <span class="mock-msg-time">Today at 14:24</span>
+                </div>
+                <div class="mock-msg-text">Just joined the voice channel, audio is crystal clear 🎙️</div>
+              </div>
+            </div>
+          </div>
+          <div class="mock-bar">
+            <span class="mock-bar-text mock-typing">Message #general</span>
+            <div class="mock-bar-send">
+              <svg style="width:13px;height:13px;fill:#fff;stroke:none" viewBox="0 0 24 24"><polygon points="22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </div>
+          </div>
+        </div>
+        <!-- Members -->
+        <div class="mock-members">
+          <div class="mock-members-title">Online — 3</div>
+          <div class="mock-member">
+            <div class="mock-member-av" style="background:linear-gradient(135deg,#5865f2,#7c3aed)">
+              S
+              <span class="mock-status" style="background:#22c55e"></span>
+            </div>
+            <span class="mock-member-name">slime</span>
+          </div>
+          <div class="mock-member">
+            <div class="mock-member-av" style="background:linear-gradient(135deg,#22c55e,#16a34a)">
+              A
+              <span class="mock-status" style="background:#22c55e"></span>
+            </div>
+            <span class="mock-member-name">alex</span>
+          </div>
+          <div class="mock-member">
+            <div class="mock-member-av" style="background:linear-gradient(135deg,#f59e0b,#d97706)">
+              J
+              <span class="mock-status" style="background:#f59e0b"></span>
+            </div>
+            <span class="mock-member-name">jake</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <div class="stats container">
+    <div class="stat">
+      <div class="stat-num">100%</div>
+      <div class="stat-label">Free forever</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">0ms</div>
+      <div class="stat-label">Message latency</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">P2P</div>
+      <div class="stat-label">Voice &amp; Video</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">SQLite</div>
+      <div class="stat-label">Self-hosted DB</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Features -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-label">Features</div>
+      <h2 class="section-title">Everything you need,<br />nothing you don't.</h2>
+      <p class="section-sub">Built from scratch with performance and privacy in mind. No bloat, no tracking, no nonsense.</p>
+      <div class="features-grid">
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="feat-title">Real-time Messaging</div>
+          <div class="feat-desc">Instant messages via WebSockets. Servers, channels, direct messages, typing indicators — everything works instantly.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.83a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </div>
+          <div class="feat-title">Voice &amp; Video</div>
+          <div class="feat-desc">Crystal-clear P2P voice and video powered by WebRTC. Join voice channels, share your camera or screen with one click.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </div>
+          <div class="feat-title">File Sharing</div>
+          <div class="feat-desc">Drag &amp; drop files directly into chat. Images show inline previews. Supports any file type up to 50 MB.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="feat-title">Secure Auth</div>
+          <div class="feat-desc">JWT access tokens with short expiry, bcrypt-hashed passwords, and rotating refresh tokens. Your data stays yours.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <div class="feat-title">Desktop App</div>
+          <div class="feat-desc">Native Windows app built with Electron. System tray, auto-updater, frameless window, deep links — it feels like a real app.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+          </div>
+          <div class="feat-title">Self-hostable</div>
+          <div class="feat-desc">Open source Node.js backend with SQLite. Run it on your own server for complete control. No subscription required.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- How it works -->
+  <section class="section" id="how">
+    <div class="container">
+      <div class="section-label">Get started</div>
+      <h2 class="section-title">Up and running<br />in minutes.</h2>
+      <p class="section-sub">No configuration needed. Download, install, and you're in.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-title">Download &amp; Install</div>
+          <div class="step-desc">Grab <code style="background:rgba(88,101,242,0.12);color:#a5adff;padding:2px 6px;border-radius:5px;font-size:12px">ElectraInstaller.exe</code> and run it. Installs to <code style="background:rgba(88,101,242,0.12);color:#a5adff;padding:2px 6px;border-radius:5px;font-size:12px">C:\Users\you\Electra</code> — no admin needed.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-title">Create an Account</div>
+          <div class="step-desc">Register with a username and password. No email verification, no phone number, no nonsense.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-title">Create or Join a Server</div>
+          <div class="step-desc">Start your own server in one click, or join an existing one with an invite code. Invite your friends and start chatting.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="cta-glow"></div>
+    <div class="container">
+      <div class="cta-box">
+        <h2>Ready to try Electra?</h2>
+        <p>Free, open source, and built to last. Download the Windows app and be chatting in under a minute.</p>
+        <a class="btn btn-primary btn-lg" href="https://github.com/slimeryt/Electra/releases/latest/download/ElectraInstaller.exe">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download for Windows — Free
+        </a>
+        <div class="cta-note">
+          <svg class="icon icon-xs" style="stroke:var(--muted)" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          Open source on GitHub · MIT License
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-copy">© 2026 Electra · Built by slimeryt</div>
+      <div class="footer-links">
+        <a href="https://github.com/slimeryt/Electra" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/slimeryt/Electra/releases" target="_blank" rel="noopener">Releases</a>
+        <a href="https://github.com/slimeryt/Electra/issues" target="_blank" rel="noopener">Issues</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
