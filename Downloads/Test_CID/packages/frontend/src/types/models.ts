@@ -5,6 +5,7 @@ export interface User {
   email: string;
   avatar_url: string | null;
   status: 'online' | 'idle' | 'dnd' | 'offline';
+  custom_status?: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -16,6 +17,7 @@ export interface Server {
   icon_url: string | null;
   owner_id: string;
   invite_code: string;
+  banner_url?: string | null;
   created_at: number;
   role?: 'owner' | 'admin' | 'member';
   member_count?: number;

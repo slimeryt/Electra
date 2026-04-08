@@ -112,6 +112,7 @@ export default function ChannelPage() {
         placeholder={`Message #${channel?.name || ''}`}
         onSend={handleSend}
         channelId={channelId}
+        serverId={serverId}
       />
     </div>
   );

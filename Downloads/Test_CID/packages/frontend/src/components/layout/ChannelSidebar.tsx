@@ -90,6 +90,19 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
       flexShrink: 0,
       overflow: 'hidden',
     }}>
+      {/* Server banner */}
+      {server?.banner_url && (
+        <div style={{
+          height: 60, flexShrink: 0, overflow: 'hidden',
+          borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+        }}>
+          <img
+            src={server.banner_url}
+            alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        </div>
+      )}
       {/* Server header */}
       <div
         style={{

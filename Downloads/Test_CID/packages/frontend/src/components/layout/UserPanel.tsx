@@ -128,7 +128,7 @@ export function UserPanel() {
             lineHeight: 1.4,
             marginTop: 1,
           }}>
-            @{user.username}
+            {user.custom_status ? user.custom_status : `@${user.username}`}
           </div>
         </div>
 

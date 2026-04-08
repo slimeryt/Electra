@@ -3,9 +3,11 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import * as serverService from '../services/serverService';
 import * as roleService from '../services/roleService';
 import db from '../db/connection';
+import { upload } from '../middleware/upload';
 
 // One-time migration: add is_public column
 try { db.exec('ALTER TABLE servers ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0'); } catch { /* exists */ }
+try { db.exec('ALTER TABLE servers ADD COLUMN banner_url TEXT'); } catch { /* exists */ }
 
 const router = Router();
 
@@ -41,6 +43,48 @@ router.get('/:serverId', (req: AuthRequest, res, next) => {
 router.patch('/:serverId', (req: AuthRequest, res, next) => {
   try {
     res.json(serverService.updateServer(req.params.serverId, req.userId!, req.body));
+  } catch (e) { next(e); }
+});
+
+// POST /servers/:serverId/icon — upload server icon image
+router.post('/:serverId/icon', upload.single('icon'), (req: AuthRequest, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'Only images allowed' });
+
+    const server = db.prepare('SELECT owner_id FROM servers WHERE id = ?').get(req.params.serverId) as any;
+    if (!server) return res.status(404).json({ error: 'Server not found' });
+    if (server.owner_id !== req.userId) return res.status(403).json({ error: 'Forbidden' });
+
+    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+    const iconUrl = `${backendUrl}/uploads/${req.file.filename}`;
+
+    const updated = db.prepare(
+      'UPDATE servers SET icon_url = ? WHERE id = ? RETURNING *'
+    ).get(iconUrl, req.params.serverId);
+
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+// POST /servers/:serverId/banner — upload server banner image
+router.post('/:serverId/banner', upload.single('banner'), (req: AuthRequest, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'Only images allowed' });
+
+    const server = db.prepare('SELECT owner_id FROM servers WHERE id = ?').get(req.params.serverId) as any;
+    if (!server) return res.status(404).json({ error: 'Server not found' });
+    if (server.owner_id !== req.userId) return res.status(403).json({ error: 'Forbidden' });
+
+    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+    const bannerUrl = `${backendUrl}/uploads/${req.file.filename}`;
+
+    const updated = db.prepare(
+      'UPDATE servers SET banner_url = ? WHERE id = ? RETURNING *'
+    ).get(bannerUrl, req.params.serverId);
+
+    res.json(updated);
   } catch (e) { next(e); }
 });
 

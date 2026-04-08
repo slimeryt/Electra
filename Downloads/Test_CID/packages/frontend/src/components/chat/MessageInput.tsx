@@ -2,6 +2,7 @@ import {
   useState,
   useRef,
   useCallback,
+  useEffect,
   KeyboardEvent,
   DragEvent,
   ChangeEvent,
@@ -9,6 +10,8 @@ import {
 import { filesApi } from '../../api/files';
 import { getSocket } from '../../socket/client';
 import { Spinner } from '../ui/Spinner';
+import { Avatar } from '../ui/Avatar';
+import { serversApi } from '../../api/servers';
 
 interface PendingFile {
   file: File;
@@ -17,12 +20,20 @@ interface PendingFile {
   fileId?: string;
 }
 
+interface MemberSuggestion {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
 interface MessageInputProps {
   placeholder?: string;
   onSend: (content: string, fileIds: string[]) => Promise<void>;
   onTyping?: () => void;
   channelId?: string;
   dmId?: string;
+  serverId?: string;
 }
 
 export function MessageInput({
@@ -31,13 +42,30 @@ export function MessageInput({
   onTyping,
   channelId,
   dmId,
+  serverId,
 }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [members, setMembers] = useState<MemberSuggestion[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch members once when serverId is available
+  useEffect(() => {
+    if (!serverId) return;
+    serversApi.members(serverId).then((m: any[]) => setMembers(m)).catch(() => {});
+  }, [serverId]);
+
+  const suggestions: MemberSuggestion[] = mentionQuery !== null
+    ? members.filter(m =>
+        m.username.toLowerCase().startsWith(mentionQuery.toLowerCase()) ||
+        m.display_name.toLowerCase().startsWith(mentionQuery.toLowerCase())
+      ).slice(0, 6)
+    : [];
 
   const emitTyping = useCallback(() => {
     const socket = getSocket();
@@ -52,6 +80,26 @@ export function MessageInput({
     }
     onTyping?.();
   }, [channelId, dmId, onTyping]);
+
+  const handleContentChange = (val: string) => {
+    setContent(val);
+    emitTyping();
+    // Detect @mention at cursor
+    const match = val.match(/@(\w*)$/);
+    if (match) {
+      setMentionQuery(match[1]);
+      setMentionIndex(0);
+    } else {
+      setMentionQuery(null);
+    }
+  };
+
+  const insertMention = (member: MemberSuggestion) => {
+    const replaced = content.replace(/@(\w*)$/, `@${member.username} `);
+    setContent(replaced);
+    setMentionQuery(null);
+    textareaRef.current?.focus();
+  };
 
   const handleFiles = async (files: FileList | File[]) => {
     const arr = Array.from(files);
@@ -81,16 +129,11 @@ export function MessageInput({
     const text = content.trim();
     const fileIds = pendingFiles.filter(f => f.fileId).map(f => f.fileId!);
     if (!text && fileIds.length === 0) return;
-
     const savedContent = text;
     setContent('');
     setPendingFiles([]);
-
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
-
+    setMentionQuery(null);
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
     try {
       await onSend(savedContent, fileIds);
     } catch {
@@ -99,6 +142,16 @@ export function MessageInput({
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (mentionQuery !== null && suggestions.length > 0) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex(i => Math.min(i + 1, suggestions.length - 1)); return; }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); setMentionIndex(i => Math.max(i - 1, 0)); return; }
+      if (e.key === 'Tab' || (e.key === 'Enter' && mentionQuery !== null)) {
+        e.preventDefault();
+        insertMention(suggestions[mentionIndex]);
+        return;
+      }
+      if (e.key === 'Escape') { setMentionQuery(null); return; }
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -112,10 +165,7 @@ export function MessageInput({
   };
 
   const handleFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      handleFiles(e.target.files);
-      e.target.value = '';
-    }
+    if (e.target.files) { handleFiles(e.target.files); e.target.value = ''; }
   };
 
   const hasUploading = pendingFiles.some(f => f.uploading);
@@ -123,84 +173,59 @@ export function MessageInput({
 
   return (
     <div
-      style={{ padding: '0 16px 16px' }}
+      style={{ padding: '0 16px 16px', position: 'relative' }}
       onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
       onDragLeave={e => { e.preventDefault(); setIsDragOver(false); }}
       onDrop={handleDrop}
     >
+      {/* @mention autocomplete */}
+      {mentionQuery !== null && suggestions.length > 0 && (
+        <div style={{
+          position: 'absolute', bottom: '100%', left: 16, right: 16, marginBottom: 4,
+          background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-lg)', overflow: 'hidden',
+          boxShadow: 'var(--shadow-float)', zIndex: 100,
+        }}>
+          <div style={{ padding: '6px 10px 4px', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+            Members
+          </div>
+          {suggestions.map((m, i) => (
+            <div
+              key={m.id}
+              onMouseDown={e => { e.preventDefault(); insertMention(m); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px',
+                cursor: 'pointer', background: i === mentionIndex ? 'var(--bg-active)' : 'transparent',
+                transition: 'background 80ms',
+              }}
+              onMouseEnter={() => setMentionIndex(i)}
+            >
+              <Avatar user={m} size={28} />
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{m.display_name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>@{m.username}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Pending file previews */}
       {pendingFiles.length > 0 && (
-        <div style={{
-          display: 'flex',
-          gap: 8,
-          padding: '8px 0',
-          flexWrap: 'wrap',
-        }}>
+        <div style={{ display: 'flex', gap: 8, padding: '8px 0', flexWrap: 'wrap' }}>
           {pendingFiles.map((pf, i) => (
             <div key={i} style={{ position: 'relative' }}>
               {pf.preview ? (
-                <img
-                  src={pf.preview}
-                  alt=""
-                  style={{
-                    width: 64,
-                    height: 64,
-                    objectFit: 'cover',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border)',
-                    opacity: pf.uploading ? 0.5 : 1,
-                    display: 'block',
-                  }}
-                />
+                <img src={pf.preview} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', opacity: pf.uploading ? 0.5 : 1, display: 'block' }} />
               ) : (
-                <div style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border)',
-                  background: 'var(--bg-overlay)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 24,
-                  opacity: pf.uploading ? 0.5 : 1,
-                }}>
-                  📄
-                </div>
+                <div style={{ width: 64, height: 64, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, opacity: pf.uploading ? 0.5 : 1 }}>📄</div>
               )}
               {pf.uploading && (
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Spinner size={16} />
                 </div>
               )}
-              <button
-                onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
-                style={{
-                  position: 'absolute',
-                  top: -6,
-                  right: -6,
-                  width: 18,
-                  height: 18,
-                  borderRadius: '50%',
-                  background: 'var(--danger)',
-                  border: 'none',
-                  color: '#fff',
-                  fontSize: 10,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  lineHeight: 1,
-                }}
-              >
-                ✕
-              </button>
+              <button onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))} style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>✕</button>
             </div>
           ))}
         </div>
@@ -208,115 +233,33 @@ export function MessageInput({
 
       {/* Input bar */}
       <div style={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        gap: 8,
+        display: 'flex', alignItems: 'flex-end', gap: 8,
         background: isDragOver ? 'rgba(88,101,242,0.10)' : 'var(--bg-input)',
         border: `1px solid ${isDragOver ? 'var(--accent)' : 'var(--border-strong)'}`,
-        borderRadius: 'var(--radius-lg)',
-        padding: '4px 8px',
+        borderRadius: 'var(--radius-lg)', padding: '4px 8px',
         transition: 'border-color var(--transition), background var(--transition)',
         boxShadow: isDragOver ? '0 0 0 3px rgba(88,101,242,0.15)' : 'inset 0 1px 3px rgba(0,0,0,0.3)',
       }}>
-        {/* Attach button */}
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            fontSize: 22,
-            padding: '4px 6px',
-            borderRadius: 'var(--radius-sm)',
-            flexShrink: 0,
-            transition: 'var(--transition)',
-            alignSelf: 'flex-end',
-            marginBottom: 4,
-            lineHeight: 1,
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.color = 'var(--text-primary)';
-            e.currentTarget.style.background = 'var(--bg-hover)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.color = 'var(--text-muted)';
-            e.currentTarget.style.background = 'none';
-          }}
-          title="Attach file"
-        >
-          +
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          style={{ display: 'none' }}
-          onChange={handleFileInputChange}
-        />
+        <button onClick={() => fileInputRef.current?.click()} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 22, padding: '4px 6px', borderRadius: 'var(--radius-sm)', flexShrink: 0, transition: 'var(--transition)', alignSelf: 'flex-end', marginBottom: 4, lineHeight: 1 }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-hover)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none'; }}
+          title="Attach file">+</button>
+        <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileInputChange} />
 
-        {/* Textarea */}
         <textarea
           ref={textareaRef}
           value={content}
-          onChange={e => {
-            setContent(e.target.value);
-            emitTyping();
-          }}
+          onChange={e => { handleContentChange(e.target.value); }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           rows={1}
-          style={{
-            flex: 1,
-            background: 'none',
-            border: 'none',
-            outline: 'none',
-            color: 'var(--text-primary)',
-            fontSize: 14,
-            fontFamily: 'inherit',
-            resize: 'none',
-            lineHeight: 1.5,
-            padding: '8px 4px',
-            maxHeight: 200,
-            overflowY: 'auto',
-          }}
-          onInput={e => {
-            const el = e.currentTarget;
-            el.style.height = 'auto';
-            el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
-          }}
+          style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 14, fontFamily: 'inherit', resize: 'none', lineHeight: 1.5, padding: '8px 4px', maxHeight: 200, overflowY: 'auto' }}
+          onInput={e => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 200)}px`; }}
         />
 
-        {/* Send button */}
-        <button
-          onClick={handleSend}
-          disabled={!canSend}
-          style={{
-            background: canSend ? 'var(--accent)' : 'var(--bg-hover)',
-            border: 'none',
-            color: canSend ? '#fff' : 'var(--text-muted)',
-            cursor: canSend ? 'pointer' : 'not-allowed',
-            width: 32,
-            height: 32,
-            borderRadius: 'var(--radius-md)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 14,
-            flexShrink: 0,
-            transition: 'var(--transition)',
-            alignSelf: 'flex-end',
-            marginBottom: 4,
-          }}
-          onMouseEnter={e => {
-            if (canSend) e.currentTarget.style.background = 'var(--accent-hover)';
-          }}
-          onMouseLeave={e => {
-            if (canSend) e.currentTarget.style.background = 'var(--accent)';
-          }}
-        >
-          ➤
-        </button>
+        <button onClick={handleSend} disabled={!canSend} style={{ background: canSend ? 'var(--accent)' : 'var(--bg-hover)', border: 'none', color: canSend ? '#fff' : 'var(--text-muted)', cursor: canSend ? 'pointer' : 'not-allowed', width: 32, height: 32, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, transition: 'var(--transition)', alignSelf: 'flex-end', marginBottom: 4 }}
+          onMouseEnter={e => { if (canSend) e.currentTarget.style.background = 'var(--accent-hover)'; }}
+          onMouseLeave={e => { if (canSend) e.currentTarget.style.background = 'var(--accent)'; }}>➤</button>
       </div>
     </div>
   );

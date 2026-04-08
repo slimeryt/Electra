@@ -70,6 +70,12 @@ export function useSocketEvents() {
     socket.on('friend_request', (req: any) => onFriendRequest(req));
     socket.on('friend_accepted', ({ friendship_id, user }: any) => onFriendAccepted(friendship_id, user));
     socket.on('friend_removed', ({ friendship_id }: any) => onFriendRemoved(friendship_id));
+    socket.on('mention_notification', ({ channel_id, server_id }: any) => {
+      // TODO: surface as a badge — for now trigger a browser notification if available
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification('You were mentioned', { body: 'Someone mentioned you in a channel.' });
+      }
+    });
 
     return () => {
       socket.off('message_create');
@@ -87,6 +93,7 @@ export function useSocketEvents() {
       socket.off('friend_request');
       socket.off('friend_accepted');
       socket.off('friend_removed');
+      socket.off('mention_notification');
     };
   }, []);
 }

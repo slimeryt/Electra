@@ -26,6 +26,35 @@ export function registerChatHandlers(io: Server, socket: Socket) {
 
       const msg = messageService.createMessage(data.channel_id, userId, data.content, data.file_ids || []);
       io.to(`channel:${data.channel_id}`).emit('message_create', msg);
+
+      // Emit mention notifications
+      if (data.content) {
+        const mentionRegex = /@(\w+)/g;
+        const mentioned = new Set<string>();
+        let m: RegExpExecArray | null;
+        while ((m = mentionRegex.exec(data.content)) !== null) {
+          mentioned.add(m[1].toLowerCase());
+        }
+        if (mentioned.size > 0) {
+          const serverRow = db.prepare('SELECT server_id FROM channels WHERE id = ?').get(data.channel_id) as any;
+          if (serverRow) {
+            for (const uname of mentioned) {
+              const target = db.prepare(
+                'SELECT u.id FROM users u JOIN server_members sm ON sm.user_id = u.id WHERE sm.server_id = ? AND lower(u.username) = ?'
+              ).get(serverRow.server_id, uname) as any;
+              if (target && target.id !== userId) {
+                io.to(`user:${target.id}`).emit('mention_notification', {
+                  channel_id: data.channel_id,
+                  server_id: serverRow.server_id,
+                  message_id: (msg as any).id,
+                  author_id: userId,
+                });
+              }
+            }
+          }
+        }
+      }
+
       callback?.({ ok: true, message: msg });
     } catch (e: any) {
       callback?.({ error: e.message });

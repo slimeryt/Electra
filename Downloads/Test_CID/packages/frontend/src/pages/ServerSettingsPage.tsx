@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Settings, Users, Hash, Link, AlertTriangle, ChevronLeft, Volume2, Megaphone, Trash2, Shield } from 'lucide-react';
+import { Settings, Users, Hash, Link, AlertTriangle, ChevronLeft, Volume2, Megaphone, Trash2, Shield, Camera } from 'lucide-react';
 import { useServerStore } from '../store/serverStore';
 import { useChannelStore } from '../store/channelStore';
 import { useAuthStore } from '../store/authStore';
@@ -11,6 +11,11 @@ import { Button } from '../components/ui/Button';
 import { Avatar } from '../components/ui/Avatar';
 import { ServerMember, Channel } from '../types/models';
 import { RolesEditor } from '../components/server/RolesEditor';
+import { isElectron } from '../env';
+
+const BASE = isElectron
+  ? (import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001')
+  : '';
 
 type Tab = 'overview' | 'members' | 'roles' | 'channels' | 'invites' | 'danger';
 
@@ -33,6 +38,42 @@ function OverviewTab({ serverId }: { serverId: string }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const iconInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  const handleIconUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    setUploadingIcon(true);
+    try {
+      const form = new FormData();
+      form.append('icon', file);
+      const { data } = await (await import('../api/client')).default.post(
+        `/servers/${serverId}/icon`, form,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      updateServer({ id: serverId, icon_url: data.icon_url });
+    } catch {} finally {
+      setUploadingIcon(false);
+    }
+  };
+
+  const handleBannerUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    setUploadingBanner(true);
+    try {
+      const form = new FormData();
+      form.append('banner', file);
+      const { data } = await (await import('../api/client')).default.post(
+        `/servers/${serverId}/banner`, form,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      updateServer({ id: serverId, banner_url: (data as any).banner_url });
+    } catch {} finally {
+      setUploadingBanner(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true); setError('');
@@ -52,12 +93,42 @@ function OverviewTab({ serverId }: { serverId: string }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Server icon + name preview */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px', background: 'var(--bg-overlay)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
-        <div style={{
-          width: 72, height: 72, borderRadius: 'var(--radius-lg)',
-          background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 32, fontWeight: 700, color: '#fff', flexShrink: 0,
-        }}>
-          {name.charAt(0).toUpperCase()}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          {server?.icon_url ? (
+            <img
+              src={server.icon_url}
+              alt={name}
+              style={{ width: 72, height: 72, borderRadius: 'var(--radius-lg)', objectFit: 'cover', display: 'block' }}
+            />
+          ) : (
+            <div style={{
+              width: 72, height: 72, borderRadius: 'var(--radius-lg)',
+              background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 32, fontWeight: 700, color: '#fff',
+            }}>
+              {name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <button
+            onClick={() => iconInputRef.current?.click()}
+            disabled={uploadingIcon}
+            title="Change server icon"
+            style={{
+              position: 'absolute', inset: 0, borderRadius: 'var(--radius-lg)',
+              background: 'rgba(0,0,0,0.55)', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              opacity: 0, transition: 'opacity 150ms', color: '#fff',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = '0'; }}
+          >
+            {uploadingIcon
+              ? <div style={{ width: 18, height: 18, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+              : <Camera size={20} />
+            }
+          </button>
+          <input ref={iconInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+            onChange={e => { if (e.target.files?.[0]) handleIconUpload(e.target.files[0]); e.target.value = ''; }} />
         </div>
         <div>
           <div style={{ fontWeight: 700, fontSize: 20, color: 'var(--text-primary)' }}>{name || 'Server Name'}</div>
@@ -67,6 +138,38 @@ function OverviewTab({ serverId }: { serverId: string }) {
 
       <Input label="Server Name" value={name} onChange={e => setName(e.target.value)} />
       <Input label="Description" value={description} onChange={e => setDescription(e.target.value)} placeholder="What's this server about?" />
+
+            {/* Banner */}
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8 }}>Server Banner</div>
+              <div style={{
+                position: 'relative', height: 100, borderRadius: 'var(--radius-md)',
+                background: server?.banner_url ? 'transparent' : 'var(--bg-overlay)',
+                border: '1px solid var(--border)', overflow: 'hidden', cursor: 'pointer',
+              }}
+                onClick={() => bannerInputRef.current?.click()}
+                onMouseEnter={e => { (e.currentTarget.querySelector('.banner-overlay') as HTMLElement | null)!.style.opacity = '1'; }}
+                onMouseLeave={e => { (e.currentTarget.querySelector('.banner-overlay') as HTMLElement | null)!.style.opacity = '0'; }}
+              >
+                {server?.banner_url && (
+                  <img src={server.banner_url} alt="Banner"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                )}
+                <div className="banner-overlay" style={{
+                  position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', gap: 6,
+                  background: 'rgba(0,0,0,0.5)', opacity: server?.banner_url ? 0 : 1,
+                  transition: 'opacity 150ms', color: '#fff',
+                }}>
+                  {uploadingBanner
+                    ? <div style={{ width: 20, height: 20, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                    : <><Camera size={18} /><span style={{ fontSize: 12, fontWeight: 500 }}>Upload Banner</span></>
+                  }
+                </div>
+                <input ref={bannerInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                  onChange={e => { if (e.target.files?.[0]) handleBannerUpload(e.target.files[0]); e.target.value = ''; }} />
+              </div>
+            </div>
 
       {/* Public toggle */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'var(--bg-overlay)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>

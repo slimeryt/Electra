@@ -17,6 +17,15 @@ interface MessageItemProps {
   isDm?: boolean;
 }
 
+function renderContent(text: string) {
+  const parts = text.split(/(@\w+)/g);
+  return parts.map((part, i) =>
+    /^@\w+$/.test(part)
+      ? <span key={i} style={{ color: 'var(--accent)', fontWeight: 600, cursor: 'default' }}>{part}</span>
+      : <span key={i}>{part}</span>
+  );
+}
+
 function formatTime(ts: number): string {
   const date = new Date(ts * 1000);
   const now = Date.now();
@@ -212,7 +221,7 @@ export function MessageItem({ message, isGrouped = false, isDm = false }: Messag
                 whiteSpace: 'pre-wrap',
                 margin: 0,
               }}>
-                {message.content}
+                {renderContent(message.content)}
               </p>
             )}
             {(message as any).attachments?.length > 0 && (
