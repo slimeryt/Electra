@@ -3,7 +3,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 import * as serverService from '../services/serverService';
 import * as roleService from '../services/roleService';
 import db from '../db/connection';
-import { upload } from '../middleware/upload';
+import { imageUpload } from '../middleware/upload';
 
 // One-time migration: add is_public column
 try { db.exec('ALTER TABLE servers ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0'); } catch { /* exists */ }
@@ -46,19 +46,16 @@ router.patch('/:serverId', (req: AuthRequest, res, next) => {
   } catch (e) { next(e); }
 });
 
-// POST /servers/:serverId/icon — upload server icon image
-router.post('/:serverId/icon', upload.single('icon'), (req: AuthRequest, res, next) => {
+// POST /servers/:serverId/icon — upload server icon, store as data URI
+router.post('/:serverId/icon', imageUpload.single('icon'), (req: AuthRequest, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'Only images allowed' });
 
     const server = db.prepare('SELECT owner_id FROM servers WHERE id = ?').get(req.params.serverId) as any;
     if (!server) return res.status(404).json({ error: 'Server not found' });
     if (server.owner_id !== req.userId) return res.status(403).json({ error: 'Forbidden' });
 
-    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
-    const iconUrl = `${backendUrl}/uploads/${req.file.filename}`;
-
+    const iconUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
     const updated = db.prepare(
       'UPDATE servers SET icon_url = ? WHERE id = ? RETURNING *'
     ).get(iconUrl, req.params.serverId);
@@ -67,19 +64,16 @@ router.post('/:serverId/icon', upload.single('icon'), (req: AuthRequest, res, ne
   } catch (e) { next(e); }
 });
 
-// POST /servers/:serverId/banner — upload server banner image
-router.post('/:serverId/banner', upload.single('banner'), (req: AuthRequest, res, next) => {
+// POST /servers/:serverId/banner — upload server banner, store as data URI
+router.post('/:serverId/banner', imageUpload.single('banner'), (req: AuthRequest, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'Only images allowed' });
 
     const server = db.prepare('SELECT owner_id FROM servers WHERE id = ?').get(req.params.serverId) as any;
     if (!server) return res.status(404).json({ error: 'Server not found' });
     if (server.owner_id !== req.userId) return res.status(403).json({ error: 'Forbidden' });
 
-    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
-    const bannerUrl = `${backendUrl}/uploads/${req.file.filename}`;
-
+    const bannerUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
     const updated = db.prepare(
       'UPDATE servers SET banner_url = ? WHERE id = ? RETURNING *'
     ).get(bannerUrl, req.params.serverId);

@@ -33,3 +33,14 @@ export const upload = multer({
     cb(null, ok);
   },
 });
+
+// In-memory image upload for avatars/icons/banners.
+// Stores the file as a base64 data URI in the DB instead of on disk,
+// which avoids cross-origin issues when serving images in the Electron app.
+export const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB max
+  fileFilter: (_req, file, cb) => {
+    cb(null, file.mimetype.startsWith('image/'));
+  },
+});

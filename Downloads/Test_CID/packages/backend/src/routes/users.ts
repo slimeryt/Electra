@@ -1,7 +1,7 @@
 import path from 'path';
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { upload } from '../middleware/upload';
+import { imageUpload } from '../middleware/upload';
 import { getIo } from '../socket/index';
 import db from '../db/connection';
 
@@ -61,16 +61,12 @@ router.patch('/me', (req: AuthRequest, res, next) => {
   } catch (e) { next(e); }
 });
 
-// POST /users/me/avatar — upload image, update avatar_url, return updated user
-router.post('/me/avatar', upload.single('avatar'), (req: AuthRequest, res, next) => {
+// POST /users/me/avatar — upload image, store as data URI, return updated user
+router.post('/me/avatar', imageUpload.single('avatar'), (req: AuthRequest, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    if (!req.file.mimetype.startsWith('image/')) {
-      return res.status(400).json({ error: 'Only images allowed' });
-    }
 
-    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
-    const avatarUrl = `${backendUrl}/uploads/${req.file.filename}`;
+    const avatarUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
     const user = db.prepare(
       'UPDATE users SET avatar_url = ?, updated_at = unixepoch() WHERE id = ? RETURNING id, username, display_name, email, avatar_url, status, custom_status'
