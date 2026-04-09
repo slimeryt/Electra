@@ -111,7 +111,9 @@ async function runMandatoryUpdateGate(): Promise<boolean> {
       return true;
     }
 
-    if (!result?.isUpdateAvailable) {
+    // electron-updater v6: returns null when no update, UpdateCheckResult when update found.
+    // There is no isUpdateAvailable property — check for null result or null downloadPromise.
+    if (!result?.downloadPromise) {
       autoUpdater.off('download-progress', onProgress);
       splashSetStatus('Starting…');
       splashSetProgress(12);
@@ -123,11 +125,7 @@ async function runMandatoryUpdateGate(): Promise<boolean> {
     splashSetProgress(10);
 
     try {
-      if (result.downloadPromise) {
-        await result.downloadPromise;
-      } else {
-        await waitForUpdateDownloaded();
-      }
+      await result.downloadPromise;
     } catch {
       while (true) {
         const dlgOpts = {
