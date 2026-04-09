@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface AvatarUser {
   display_name?: string;
@@ -36,6 +36,9 @@ export function Avatar({ user, size = 36, showStatus = false }: AvatarProps) {
   const name = user?.display_name || user?.username || '';
   const bg = hashColor(name);
   const [imgError, setImgError] = useState(false);
+
+  // Reset error state whenever the URL changes so the new image gets a fresh attempt
+  useEffect(() => { setImgError(false); }, [user?.avatar_url]);
 
   const showImage = !!user?.avatar_url && !imgError;
 

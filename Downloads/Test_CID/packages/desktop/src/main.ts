@@ -386,18 +386,8 @@ function createMainWindow() {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     const headers: Record<string, string[]> = { ...details.responseHeaders };
 
-    // Inject CSP for app:// pages
-    if (!isDev) {
-      headers['Content-Security-Policy'] = [
-        "default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http://localhost:*; media-src 'self' blob: mediastream:; connect-src 'self' http://localhost:* https://* ws://localhost:* wss://*",
-      ];
-    } else {
-      headers['Content-Security-Policy'] = [
-        "default-src 'self' 'unsafe-inline' 'unsafe-eval' ws://localhost:* http://localhost:*; img-src 'self' data: blob: http://localhost:*; media-src 'self' blob: mediastream:",
-      ];
-    }
-
-    // Inject CORS headers for backend API responses
+    // Inject CORS headers for backend API responses (HTTP/HTTPS only — this handler
+    // never fires for app:// requests; CSP for app:// is set in protocol.handle above)
     if (!isDev && details.url.startsWith('http://localhost:3001/')) {
       headers['Access-Control-Allow-Origin'] = ['*'];
       headers['Access-Control-Allow-Credentials'] = ['true'];
@@ -427,22 +417,56 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
 
   // Register app:// → resources/frontend file server
+  // Uses protocol.handle (Electron 25+) so we can set response headers (CSP).
+  // onHeadersReceived only fires for HTTP/HTTPS — it never applies to app://.
   if (!isDev) {
-    protocol.registerFileProtocol('app', (request, callback) => {
-      let urlPath = new URL(request.url).pathname;
-      if (!urlPath || urlPath === '/') urlPath = '/index.html';
+    const PROD_CSP =
+      "default-src 'self' 'unsafe-inline'; " +
+      "script-src 'self' 'unsafe-inline'; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data: blob: http://localhost:*; " +
+      "media-src 'self' blob: mediastream:; " +
+      "connect-src 'self' http://localhost:* https://* ws://localhost:* wss://*";
+
+    const MIME: Record<string, string> = {
+      '.html': 'text/html; charset=utf-8',
+      '.js': 'application/javascript',
+      '.mjs': 'application/javascript',
+      '.css': 'text/css',
+      '.json': 'application/json',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml',
+      '.ico': 'image/x-icon',
+      '.woff': 'font/woff',
+      '.woff2': 'font/woff2',
+      '.ttf': 'font/ttf',
+      '.otf': 'font/otf',
+    };
+
+    protocol.handle('app', (request) => {
+      const fs = require('fs') as typeof import('fs');
+      let urlPath = new URL(request.url).pathname || '/index.html';
       const frontendDir = app.isPackaged
         ? path.join(process.resourcesPath, 'frontend')
         : path.join(__dirname, '../../frontend/dist');
-      const filePath = path.join(frontendDir, decodeURIComponent(urlPath));
-      // SPA fallback: if the file doesn't exist (e.g. app:///login navigated via
-      // window.location.href), serve index.html and let React Router handle the route.
-      const fs = require('fs');
-      if (!fs.existsSync(filePath) || !filePath.includes('.')) {
-        callback({ path: path.join(frontendDir, 'index.html') });
-      } else {
-        callback({ path: filePath });
+
+      let filePath = path.join(frontendDir, decodeURIComponent(urlPath));
+      if (!fs.existsSync(filePath) || !urlPath.includes('.')) {
+        filePath = path.join(frontendDir, 'index.html');
       }
+
+      const ext = path.extname(filePath).toLowerCase();
+      const contentType = MIME[ext] || 'application/octet-stream';
+      const body = fs.readFileSync(filePath);
+      const headers: Record<string, string> = { 'Content-Type': contentType };
+      if (ext === '.html' || filePath.endsWith('index.html')) {
+        headers['Content-Security-Policy'] = PROD_CSP;
+      }
+      return new Response(body, { headers });
     });
 
     await createSplashWindow();
