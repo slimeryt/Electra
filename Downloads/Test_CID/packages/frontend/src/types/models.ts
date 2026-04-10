@@ -9,6 +9,7 @@ export interface User {
   custom_status?: string | null;
   bio?: string | null;
   accent_color?: string | null;
+  username_font?: string | null;
   created_at: number;
   updated_at: number;
 }
