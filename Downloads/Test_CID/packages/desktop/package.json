@@ -1,6 +1,6 @@
 {
   "name": "@cord/desktop",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "description": "Electra desktop app",
   "author": "slimeryt",
   "main": "dist/main.js",

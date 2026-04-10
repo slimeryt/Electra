@@ -15,6 +15,7 @@ import WelcomePage from './pages/WelcomePage';
 import FriendsPage from './pages/FriendsPage';
 import { ScreenSharePickerModal } from './components/electron/ScreenSharePickerModal';
 import { ProfileCard } from './components/ui/ProfileCard';
+import './store/themeStore'; // ensures theme is applied from localStorage on startup
 
 // Listens for the auth:logout event fired by the axios interceptor when
 // token refresh fails, and navigates to /login via React Router (not window.location).

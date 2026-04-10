@@ -9,6 +9,13 @@ export function useSocketEvents() {
   const { addChannel, updateChannel, removeChannel } = useChannelStore();
   const { onFriendRequest, onFriendAccepted, onFriendRemoved } = useFriendStore();
 
+  // Request notification permission once on mount
+  useEffect(() => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
+
   useEffect(() => {
     const socket = getSocket();
 
@@ -24,10 +31,35 @@ export function useSocketEvents() {
 
     socket.on('dm_message_create', ({ message }: any) => {
       addDmMessage(message);
+      // Desktop notification when window is not focused and message is not from self
+      const currentUser = useAuthStore.getState().user;
+      if (
+        typeof Notification !== 'undefined' &&
+        Notification.permission === 'granted' &&
+        !document.hasFocus() &&
+        message?.author?.id !== currentUser?.id
+      ) {
+        const senderName = message.author?.display_name || message.author?.username || 'Someone';
+        const body = message.content || '(attachment)';
+        try {
+          new Notification(`${senderName}`, {
+            body,
+            icon: message.author?.avatar_url || undefined,
+            tag: `dm-${message.dm_id}`,
+          });
+        } catch {}
+      }
     });
 
     socket.on('dm_message_update', ({ dm_id, message_id, content, edited_at }: any) => {
       updateDmMessage(dm_id, message_id, content, edited_at);
+    });
+
+    // When a new DM/group DM is created and we're a participant, join its room
+    socket.on('dm_created', ({ dm }: any) => {
+      if (dm?.id) {
+        socket.emit('join_dm_room', { dm_id: dm.id });
+      }
     });
 
     socket.on('voice_room_state', ({ channel_id, participants }: any) => {
@@ -42,9 +74,7 @@ export function useSocketEvents() {
     });
 
     socket.on('voice_user_join', ({ channel_id, user_id, user }: any) => {
-      // Update global per-channel presence (visible in sidebar)
       if (channel_id) addChannelParticipant(channel_id, { userId: user_id, user });
-      // Only update the active participants list if this is our current channel
       const active = useVoiceStore.getState().activeChannelId;
       if (!active || channel_id === active) {
         addParticipant({ userId: user_id, muted: false, deafened: false, video: false, screen: false, user });
@@ -70,10 +100,21 @@ export function useSocketEvents() {
     socket.on('friend_request', (req: any) => onFriendRequest(req));
     socket.on('friend_accepted', ({ friendship_id, user }: any) => onFriendAccepted(friendship_id, user));
     socket.on('friend_removed', ({ friendship_id }: any) => onFriendRemoved(friendship_id));
-    socket.on('mention_notification', ({ channel_id, server_id }: any) => {
-      // TODO: surface as a badge — for now trigger a browser notification if available
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        new Notification('You were mentioned', { body: 'Someone mentioned you in a channel.' });
+
+    socket.on('mention_notification', ({ channel_id, server_id, message }: any) => {
+      if (
+        typeof Notification !== 'undefined' &&
+        Notification.permission === 'granted' &&
+        !document.hasFocus()
+      ) {
+        const senderName = message?.author?.display_name || message?.author?.username || 'Someone';
+        try {
+          new Notification(`${senderName} mentioned you`, {
+            body: message?.content || 'You were mentioned in a channel.',
+            icon: message?.author?.avatar_url || undefined,
+            tag: `mention-${channel_id}`,
+          });
+        } catch {}
       }
     });
 
@@ -83,6 +124,7 @@ export function useSocketEvents() {
       socket.off('message_delete');
       socket.off('dm_message_create');
       socket.off('dm_message_update');
+      socket.off('dm_created');
       socket.off('voice_room_state');
       socket.off('voice_user_join');
       socket.off('voice_user_leave');

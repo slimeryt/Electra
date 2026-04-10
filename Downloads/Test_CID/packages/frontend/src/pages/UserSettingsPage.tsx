@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, ImagePlus, X, RotateCcw } from 'lucide-react';
+import { useThemeStore, THEMES } from '../store/themeStore';
 import { useAuthStore } from '../store/authStore';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -71,6 +72,7 @@ const STATUS_OPTIONS = [
 export default function UserSettingsPage() {
   const { user, logout, setUser } = useAuthStore();
   const navigate = useNavigate();
+  const { theme: currentTheme, setTheme } = useThemeStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
@@ -481,6 +483,50 @@ export default function UserSettingsPage() {
                   }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color, flexShrink: 0 }} />
                     {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Theme */}
+            <div style={{
+              background: 'var(--bg-elevated)', borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border)', padding: 20, marginBottom: 12,
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>App Theme</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                {THEMES.map(t => (
+                  <button
+                    key={t.value}
+                    onClick={() => setTheme(t.value)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 12px', borderRadius: 'var(--radius-md)',
+                      border: `1.5px solid ${currentTheme === t.value ? 'var(--accent)' : 'var(--border)'}`,
+                      background: currentTheme === t.value ? 'rgba(88,101,242,0.1)' : 'var(--bg-overlay)',
+                      cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                      transition: 'all 120ms',
+                    }}
+                  >
+                    {/* Mini preview swatch */}
+                    <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                      {t.preview.map((c, i) => (
+                        <div key={i} style={{
+                          width: i === 2 ? 10 : 14,
+                          height: 24,
+                          background: c,
+                          borderRadius: i === 0 ? '3px 0 0 3px' : i === 1 ? '0' : '0 3px 3px 0',
+                        }} />
+                      ))}
+                    </div>
+                    <span style={{
+                      fontSize: 13,
+                      fontWeight: currentTheme === t.value ? 600 : 400,
+                      color: currentTheme === t.value ? 'var(--accent)' : 'var(--text-primary)',
+                    }}>{t.label}</span>
+                    {currentTheme === t.value && (
+                      <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--accent)', fontWeight: 600 }}>✓</span>
+                    )}
                   </button>
                 ))}
               </div>

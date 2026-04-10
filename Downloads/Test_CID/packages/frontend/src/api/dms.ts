@@ -5,7 +5,10 @@ export const dmsApi = {
   list: () => client.get<DirectMessage[]>('/dms').then(r => r.data),
 
   create: (userId: string) =>
-    client.post<{ id: string }>('/dms', { user_id: userId }).then(r => r.data),
+    client.post<DirectMessage>('/dms', { user_id: userId }).then(r => r.data),
+
+  createGroup: (userIds: string[], name?: string) =>
+    client.post<DirectMessage>('/dms', { user_ids: userIds, is_group: true, name }).then(r => r.data),
 
   getMessages: (dmId: string, before?: string, limit = 50) =>
     client.get<DmMessage[]>(`/dms/${dmId}/messages`, { params: { before, limit } }).then(r => r.data),
