@@ -5,6 +5,11 @@ import { authApi } from '../api/auth';
 import { connectSocket, disconnectSocket } from '../socket/client';
 import { isElectron } from '../env';
 import { clearPersistedAuth, hydrateAuthFromDisk, persistAuthTokens } from '../lib/electronAuthPersist';
+import { useThemeStore, type Theme } from './themeStore';
+
+function applyUserTheme(user: User) {
+  if (user.theme) useThemeStore.getState().setTheme(user.theme as Theme);
+}
 
 interface AuthState {
   user: User | null;
@@ -31,6 +36,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.setItem('refreshToken', refreshToken);
     if (isElectron) await persistAuthTokens(accessToken, refreshToken);
     set({ user, isAuthenticated: true });
+    applyUserTheme(user);
     connectSocket(accessToken);
   },
 
@@ -40,6 +46,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.setItem('refreshToken', refreshToken);
     if (isElectron) await persistAuthTokens(accessToken, refreshToken);
     set({ user, isAuthenticated: true });
+    applyUserTheme(user);
     connectSocket(accessToken);
   },
 
@@ -69,6 +76,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const token = localStorage.getItem('accessToken')!;
       const rt = localStorage.getItem('refreshToken');
       set({ user, isAuthenticated: true });
+      applyUserTheme(user);
       connectSocket(token);
       if (isElectron && rt) await persistAuthTokens(token, rt);
     } catch (e: unknown) {

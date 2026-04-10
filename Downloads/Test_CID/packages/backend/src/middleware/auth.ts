@@ -8,7 +8,7 @@ export interface AuthRequest extends Request {
     id: string; username: string; display_name: string; email: string;
     avatar_url: string | null; banner_url: string | null; status: string;
     custom_status: string | null; bio: string | null;
-    accent_color: string | null; username_font: string | null;
+    accent_color: string | null; username_font: string | null; theme: string | null;
   };
 }
 
@@ -23,7 +23,7 @@ export function requireAuth(req: AuthRequest, res: Response, next: NextFunction)
     const payload = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
 
     const user = db.prepare(
-      'SELECT id, username, display_name, email, avatar_url, banner_url, status, custom_status, bio, accent_color, username_font FROM users WHERE id = ?'
+      'SELECT id, username, display_name, email, avatar_url, banner_url, status, custom_status, bio, accent_color, username_font, theme FROM users WHERE id = ?'
     ).get(payload.userId) as AuthRequest['user'];
 
     if (!user) {

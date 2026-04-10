@@ -11,8 +11,9 @@ try { db.exec('ALTER TABLE users ADD COLUMN bio TEXT'); } catch { /* exists */ }
 try { db.exec('ALTER TABLE users ADD COLUMN accent_color TEXT'); } catch { /* exists */ }
 try { db.exec('ALTER TABLE users ADD COLUMN banner_url TEXT'); } catch { /* exists */ }
 try { db.exec('ALTER TABLE users ADD COLUMN username_font TEXT'); } catch { /* exists */ }
+try { db.exec('ALTER TABLE users ADD COLUMN theme TEXT'); } catch { /* exists */ }
 
-const PROFILE_FIELDS = 'id, username, display_name, email, avatar_url, banner_url, status, custom_status, bio, accent_color, username_font';
+const PROFILE_FIELDS = 'id, username, display_name, email, avatar_url, banner_url, status, custom_status, bio, accent_color, username_font, theme';
 
 const router = Router();
 router.use(requireAuth);
@@ -29,7 +30,7 @@ router.get('/:userId', (req: AuthRequest, res, next) => {
 
 router.patch('/me', (req: AuthRequest, res, next) => {
   try {
-    const { display_name, avatar_url, status, custom_status, bio, accent_color, username_font } = req.body;
+    const { display_name, avatar_url, status, custom_status, bio, accent_color, username_font, theme } = req.body;
     const fields: string[] = [];
     const values: unknown[] = [];
 
@@ -39,6 +40,7 @@ router.patch('/me', (req: AuthRequest, res, next) => {
     if (bio !== undefined)            { fields.push('bio = ?');           values.push(bio || null); }
     if (accent_color !== undefined)   { fields.push('accent_color = ?');  values.push(accent_color || null); }
     if (username_font !== undefined)  { fields.push('username_font = ?'); values.push(username_font || null); }
+    if (theme !== undefined)          { fields.push('theme = ?');         values.push(theme || null); }
     if (status !== undefined) {
       const valid = ['online', 'idle', 'dnd', 'offline'];
       if (!valid.includes(status)) return res.status(400).json({ error: 'Invalid status' });

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, ImagePlus, X, RotateCcw, ArrowUpRight, ArrowRight, ArrowDownRight, ArrowDown } from 'lucide-react';
-import { useThemeStore, THEMES } from '../store/themeStore';
+import { useThemeStore, THEMES, type Theme } from '../store/themeStore';
 import { useAuthStore } from '../store/authStore';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -73,6 +73,14 @@ export default function UserSettingsPage() {
   const { user, logout, setUser } = useAuthStore();
   const navigate = useNavigate();
   const { theme: currentTheme, setTheme } = useThemeStore();
+
+  const handleThemeChange = async (t: Theme) => {
+    setTheme(t);
+    try {
+      const { data } = await client.patch('/users/me', { theme: t });
+      setUser(data.user || data);
+    } catch { /* non-critical — localStorage already updated */ }
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
@@ -500,7 +508,7 @@ export default function UserSettingsPage() {
                 {THEMES.map(t => (
                   <button
                     key={t.value}
-                    onClick={() => setTheme(t.value)}
+                    onClick={() => handleThemeChange(t.value)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '10px 12px', borderRadius: 'var(--radius-md)',

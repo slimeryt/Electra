@@ -10,6 +10,7 @@ export interface User {
   bio?: string | null;
   accent_color?: string | null;
   username_font?: string | null;
+  theme?: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -45,6 +46,12 @@ export interface MessageAuthor {
   avatar_url: string | null;
 }
 
+export interface ReplyPreview {
+  id: string;
+  content: string | null;
+  author: MessageAuthor | null;
+}
+
 export interface FileAttachment {
   id: string;
   original_name: string;
@@ -65,10 +72,14 @@ export interface Message {
   created_at: number;
   author: MessageAuthor | null;
   attachments: FileAttachment[];
+  reply_to_id?: string | null;
+  reply_to?: ReplyPreview | null;
 }
 
 export interface DirectMessage {
   id: string;
+  name?: string | null;
+  is_group?: number;
   created_at: number;
   participants: User[];
 }
@@ -83,6 +94,8 @@ export interface DmMessage {
   created_at: number;
   author: MessageAuthor | null;
   attachments: FileAttachment[];
+  reply_to_id?: string | null;
+  reply_to?: ReplyPreview | null;
 }
 
 export interface ServerMember {
