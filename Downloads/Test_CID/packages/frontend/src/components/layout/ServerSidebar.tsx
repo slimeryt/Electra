@@ -1,7 +1,7 @@
 import { useEffect, useState, CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Compass, Plus, Settings, Link, Clipboard, Trash2, LogOut, CheckCheck } from 'lucide-react';
+import { MessageSquare, Compass, Plus, Settings, Link, Clipboard, Trash2, LogOut, CheckCheck, BadgeCheck } from 'lucide-react';
 import { useServerStore } from '../../store/serverStore';
 import { useChannelStore } from '../../store/channelStore';
 import { useAuthStore } from '../../store/authStore';
@@ -12,7 +12,7 @@ import { useContextMenu } from '../../context/ContextMenuContext';
 import { serversApi } from '../../api/servers';
 
 interface ServerIconProps {
-  server: { id: string; name: string; icon_url?: string | null; owner_id?: string };
+  server: { id: string; name: string; icon_url?: string | null; owner_id?: string; verified?: number };
   isActive: boolean;
   onClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
@@ -86,6 +86,18 @@ function ServerIcon({ server, isActive, onClick, onContextMenu }: ServerIconProp
             </span>
           )}
         </motion.div>
+
+        {/* Verified badge */}
+        {server.verified ? (
+          <div style={{
+            position: 'absolute', bottom: 0, right: 4,
+            width: 16, height: 16, borderRadius: '50%',
+            background: 'var(--bg-base)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <BadgeCheck size={14} style={{ color: '#3b82f6' }} />
+          </div>
+        ) : null}
       </div>
     </Tooltip>
   );
@@ -119,6 +131,7 @@ export function ServerSidebar() {
   const handleServerContextMenu = (e: React.MouseEvent, server: any) => {
     e.preventDefault();
     const isOwner = server.owner_id === user?.id;
+    const isAdmin = user?.username === 'slimeryt';
     show([
       { label: 'Mark as Read', icon: <CheckCheck size={14} />, onClick: () => {} },
       { divider: true, label: '', onClick: () => {} },
@@ -128,6 +141,18 @@ export function ServerSidebar() {
       ] : []),
       { divider: true, label: '', onClick: () => {} },
       { label: 'Copy Server ID', icon: <Clipboard size={14} />, onClick: () => navigator.clipboard.writeText(server.id) },
+      ...(isAdmin ? [
+        { divider: true, label: '', onClick: () => {} },
+        { label: server.verified ? 'Remove Verification' : 'Verify Server', icon: <BadgeCheck size={14} />, onClick: async () => {
+          try {
+            const { usersApi } = await import('../../api/users');
+            if (server.verified) await usersApi.unverifyServer(server.id);
+            else await usersApi.verifyServer(server.id);
+            // Refresh servers
+            await fetchServers();
+          } catch {}
+        }},
+      ] : []),
       { divider: true, label: '', onClick: () => {} },
       isOwner
         ? { label: 'Delete Server', icon: <Trash2 size={14} />, danger: true, onClick: async () => {

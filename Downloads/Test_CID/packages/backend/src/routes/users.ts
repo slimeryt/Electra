@@ -12,8 +12,25 @@ try { db.exec('ALTER TABLE users ADD COLUMN accent_color TEXT'); } catch { /* ex
 try { db.exec('ALTER TABLE users ADD COLUMN banner_url TEXT'); } catch { /* exists */ }
 try { db.exec('ALTER TABLE users ADD COLUMN username_font TEXT'); } catch { /* exists */ }
 try { db.exec('ALTER TABLE users ADD COLUMN theme TEXT'); } catch { /* exists */ }
+try { db.exec('ALTER TABLE users ADD COLUMN verified INTEGER NOT NULL DEFAULT 0'); } catch { /* exists */ }
+try { db.exec('ALTER TABLE users ADD COLUMN badges TEXT NOT NULL DEFAULT "[]"'); } catch { /* exists */ }
+try { db.exec('ALTER TABLE servers ADD COLUMN verified INTEGER NOT NULL DEFAULT 0'); } catch { /* exists */ }
 
-const PROFILE_FIELDS = 'id, username, display_name, email, avatar_url, banner_url, status, custom_status, bio, accent_color, username_font, theme';
+// Back-fill early_access badge for all existing users who don't have it
+try {
+  const usersWithout = db.prepare(`SELECT id, badges FROM users WHERE badges NOT LIKE '%early_access%'`).all() as { id: string; badges: string }[];
+  for (const u of usersWithout) {
+    let badges: string[] = [];
+    try { badges = JSON.parse(u.badges || '[]'); } catch {}
+    if (!badges.includes('early_access')) {
+      badges.unshift('early_access');
+      db.prepare('UPDATE users SET badges = ? WHERE id = ?').run(JSON.stringify(badges), u.id);
+    }
+  }
+} catch {}
+
+const ADMIN_USERNAME = 'slimeryt';
+const PROFILE_FIELDS = 'id, username, display_name, email, avatar_url, banner_url, status, custom_status, bio, accent_color, username_font, theme, verified, badges';
 
 const router = Router();
 router.use(requireAuth);
@@ -103,6 +120,58 @@ router.delete('/me/banner', (req: AuthRequest, res, next) => {
       `UPDATE users SET banner_url = NULL, updated_at = unixepoch() WHERE id = ? RETURNING ${PROFILE_FIELDS}`
     ).get(req.userId!) as any;
     res.json({ user });
+  } catch (e) { next(e); }
+});
+
+// ── Admin-only routes (slimeryt only) ─────────────────────────────────────────
+function requireAdmin(req: AuthRequest, res: any, next: any) {
+  if ((req.user as any)?.username !== ADMIN_USERNAME) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  next();
+}
+
+// POST /users/:id/verify — verify a user
+router.post('/:id/verify', requireAdmin, (req: AuthRequest, res, next) => {
+  try {
+    const user = db.prepare(
+      `UPDATE users SET verified = 1, updated_at = unixepoch() WHERE id = ? RETURNING ${PROFILE_FIELDS}`
+    ).get(req.params.id) as any;
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user });
+  } catch (e) { next(e); }
+});
+
+// DELETE /users/:id/verify — unverify a user
+router.delete('/:id/verify', requireAdmin, (req: AuthRequest, res, next) => {
+  try {
+    const user = db.prepare(
+      `UPDATE users SET verified = 0, updated_at = unixepoch() WHERE id = ? RETURNING ${PROFILE_FIELDS}`
+    ).get(req.params.id) as any;
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user });
+  } catch (e) { next(e); }
+});
+
+// POST /servers/:id/verify — verify a server
+router.post('/servers/:id/verify', requireAdmin, (req: AuthRequest, res, next) => {
+  try {
+    const server = db.prepare(
+      'UPDATE servers SET verified = 1 WHERE id = ? RETURNING *'
+    ).get(req.params.id) as any;
+    if (!server) return res.status(404).json({ error: 'Server not found' });
+    res.json({ server });
+  } catch (e) { next(e); }
+});
+
+// DELETE /servers/:id/verify — unverify a server
+router.delete('/servers/:id/verify', requireAdmin, (req: AuthRequest, res, next) => {
+  try {
+    const server = db.prepare(
+      'UPDATE servers SET verified = 0 WHERE id = ? RETURNING *'
+    ).get(req.params.id) as any;
+    if (!server) return res.status(404).json({ error: 'Server not found' });
+    res.json({ server });
   } catch (e) { next(e); }
 });
 

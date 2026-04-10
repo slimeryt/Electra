@@ -37,9 +37,9 @@ export function register(username: string, displayName: string, email: string, p
 
   const passwordHash = bcrypt.hashSync(password, 12);
   const stmt = db.prepare(
-    'INSERT INTO users (username, display_name, email, password_hash) VALUES (?, ?, ?, ?) RETURNING id, username, display_name, email, avatar_url, status'
+    'INSERT INTO users (username, display_name, email, password_hash, badges) VALUES (?, ?, ?, ?, ?) RETURNING id, username, display_name, email, avatar_url, status, verified, badges'
   );
-  const user = stmt.get(username, displayName, email, passwordHash) as Omit<User, 'password_hash'>;
+  const user = stmt.get(username, displayName, email, passwordHash, JSON.stringify(['early_access'])) as Omit<User, 'password_hash'>;
   const tokens = generateTokens(user.id);
   return { user, ...tokens };
 }

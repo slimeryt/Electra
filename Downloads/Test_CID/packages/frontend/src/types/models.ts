@@ -11,6 +11,8 @@ export interface User {
   accent_color?: string | null;
   username_font?: string | null;
   theme?: string | null;
+  verified?: number;
+  badges?: string; // JSON array string e.g. '["early_access","staff"]'
   created_at: number;
   updated_at: number;
 }
@@ -23,6 +25,7 @@ export interface Server {
   owner_id: string;
   invite_code: string;
   banner_url?: string | null;
+  verified?: number;
   created_at: number;
   role?: 'owner' | 'admin' | 'member';
   member_count?: number;

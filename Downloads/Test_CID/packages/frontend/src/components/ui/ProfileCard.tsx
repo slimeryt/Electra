@@ -1,10 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, BadgeCheck, ShieldCheck, Sparkles, Star } from 'lucide-react';
 import { useProfileCardStore } from '../../store/profileCardStore';
+import { useAuthStore } from '../../store/authStore';
 import { usersApi } from '../../api/users';
 import { Avatar } from './Avatar';
 import type { User } from '../../types/models';
+
+const ADMIN_USERNAME = 'slimeryt';
+
+const BADGE_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+  early_access: { label: 'Early Access',  icon: <Sparkles size={11} />, color: '#f59e0b' },
+  staff:        { label: 'Staff',          icon: <ShieldCheck size={11} />, color: '#5865f2' },
+  verified:     { label: 'Verified',       icon: <BadgeCheck size={11} />,  color: '#3b82f6' },
+  supporter:    { label: 'Supporter',      icon: <Star size={11} />,        color: '#ec4899' },
+};
 
 export const STATUS_LABEL: Record<string, string> = {
   online: 'Online', idle: 'Idle', dnd: 'Do Not Disturb', offline: 'Offline',
@@ -25,11 +35,32 @@ export function ProfileCardBody({
   profile,
   loading,
   onClose,
+  onVerifyChange,
 }: {
   profile: User | null;
   loading?: boolean;
   onClose?: () => void;
+  onVerifyChange?: (updated: User) => void;
 }) {
+  const { user: currentUser } = useAuthStore();
+  const isAdmin = currentUser?.username === ADMIN_USERNAME;
+  const isVerified = !!profile?.verified;
+  const [verifying, setVerifying] = useState(false);
+
+  const handleVerify = async () => {
+    if (!profile) return;
+    setVerifying(true);
+    try {
+      const data = isVerified
+        ? await usersApi.unverifyUser(profile.id)
+        : await usersApi.verifyUser(profile.id);
+      onVerifyChange?.(data.user);
+    } catch {}
+    finally { setVerifying(false); }
+  };
+
+  let badges: string[] = [];
+  try { badges = JSON.parse(profile?.badges || '[]'); } catch {}
   const accent = profile?.accent_color;
   const isGradient = accent?.startsWith('linear-gradient') || accent?.startsWith('radial-gradient');
   const bannerBg = accent ? (isGradient ? accent : accent) : 'linear-gradient(135deg, #5865f2, #4752c4)';
@@ -78,8 +109,15 @@ export function ProfileCardBody({
           </div>
         ) : profile ? (
           <>
-            <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-primary)', lineHeight: 1.2, fontFamily: nameFont, letterSpacing: '-0.01em' }}>
-              {profile.display_name}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-primary)', lineHeight: 1.2, fontFamily: nameFont, letterSpacing: '-0.01em' }}>
+                {profile.display_name}
+              </div>
+              {isVerified && (
+                <span title="Verified" style={{ display: 'flex', flexShrink: 0 }}>
+                  <BadgeCheck size={18} style={{ color: '#3b82f6' }} />
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 8 }}>
               @{profile.username}
@@ -105,6 +143,52 @@ export function ProfileCardBody({
                 </div>
               </>
             )}
+
+            {/* Badges */}
+            {badges.length > 0 && (
+              <>
+                <div style={{ height: 1, background: 'var(--border)', margin: '10px 0 8px' }} />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {badges.map(badge => {
+                    const meta = BADGE_META[badge];
+                    if (!meta) return null;
+                    return (
+                      <div key={badge} title={meta.label} style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        padding: '3px 8px', borderRadius: 99,
+                        background: `${meta.color}22`,
+                        border: `1px solid ${meta.color}55`,
+                        color: meta.color, fontSize: 11, fontWeight: 600,
+                      }}>
+                        {meta.icon}
+                        {meta.label}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* Admin: verify/unverify button */}
+            {isAdmin && onVerifyChange && (
+              <button
+                onClick={handleVerify}
+                disabled={verifying}
+                style={{
+                  marginTop: 10, width: '100%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '6px 0', border: `1px solid ${isVerified ? 'rgba(239,68,68,0.4)' : 'rgba(59,130,246,0.4)'}`,
+                  borderRadius: 'var(--radius-md)',
+                  background: isVerified ? 'rgba(239,68,68,0.08)' : 'rgba(59,130,246,0.08)',
+                  color: isVerified ? '#ef4444' : '#3b82f6',
+                  cursor: verifying ? 'wait' : 'pointer', fontSize: 12, fontWeight: 600,
+                  fontFamily: 'inherit', transition: 'all 120ms',
+                }}
+              >
+                <BadgeCheck size={13} />
+                {verifying ? '…' : isVerified ? 'Remove Verification' : 'Verify User'}
+              </button>
+            )}
           </>
         ) : (
           <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Could not load profile.</div>
@@ -121,6 +205,8 @@ export function ProfileCard() {
   const { userId, anchor, close } = useProfileCardStore();
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
+  const { user: currentUser } = useAuthStore();
+  const isAdmin = currentUser?.username === ADMIN_USERNAME;
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -162,7 +248,12 @@ export function ProfileCard() {
       }}
     >
       <style>{`@keyframes profileCardIn{from{opacity:0;transform:scale(0.94) translateY(-6px)}to{opacity:1;transform:scale(1) translateY(0)}}`}</style>
-      <ProfileCardBody profile={profile} loading={loading} onClose={close} />
+      <ProfileCardBody
+        profile={profile}
+        loading={loading}
+        onClose={close}
+        onVerifyChange={isAdmin ? (updated) => setProfile(updated) : undefined}
+      />
     </div>,
     document.body
   );
