@@ -1,4 +1,5 @@
 import { ipcMain, BrowserWindow, Notification } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import { NotificationPayload } from './types';
 import { saveSessionTokens, loadSessionTokens, clearSessionTokens } from '../sessionPersist';
 
@@ -40,6 +41,15 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null) {
 
   ipcMain.handle('updater:check', () => {
     console.log('[updater] Check for updates triggered');
+  });
+
+  ipcMain.handle('updater:install-now', () => {
+    try {
+      autoUpdater.quitAndInstall(false, true);
+    } catch {
+      const w = getMainWindow();
+      if (w) w.webContents.send('updater:install-failed');
+    }
   });
 
   ipcMain.handle('auth:session-save', (_e, tokens: { accessToken: string; refreshToken: string }) => {

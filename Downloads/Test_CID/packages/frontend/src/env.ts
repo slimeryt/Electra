@@ -24,6 +24,8 @@ export type ElectraBridge = {
   onDisplayMediaPickerClose: (cb: () => void) => () => void;
   selectDisplaySource: (sourceId: string) => Promise<{ ok: boolean }>;
   cancelDisplayPicker: () => Promise<void>;
+  installUpdate: () => Promise<void>;
+  onUpdateReady: (callback: (version: string) => void) => () => void;
 };
 
 declare global {

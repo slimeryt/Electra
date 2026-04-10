@@ -54,4 +54,12 @@ contextBridge.exposeInMainWorld('electraBridge', {
   selectDisplaySource: (sourceId: string) => ipcRenderer.invoke('display-media:select', sourceId),
 
   cancelDisplayPicker: () => ipcRenderer.invoke('display-media:cancel'),
+
+  installUpdate: () => ipcRenderer.invoke('updater:install-now'),
+
+  onUpdateReady: (callback: (version: string) => void) => {
+    const fn = (_event: Electron.IpcRendererEvent, { version }: { version: string }) => callback(version);
+    ipcRenderer.on('updater:update-ready', fn);
+    return () => ipcRenderer.removeListener('updater:update-ready', fn);
+  },
 });

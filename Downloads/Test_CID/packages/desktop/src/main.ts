@@ -510,6 +510,37 @@ app.whenReady().then(async () => {
   registerIpcHandlers(() => mainWindow);
   registerDisplayMediaHandler(() => mainWindow);
 
+  // ── Background update checker (after app is open) ──────────────────────────
+  // Only in packaged builds. Checks once after the window loads, then every 4h.
+  // If a new version is found + downloaded, notifies the renderer to show the
+  // update button in the titlebar. User can then click to install.
+  if (app.isPackaged) {
+    const bgUpdater = autoUpdater;
+    bgUpdater.autoDownload = false; // we control the download manually here
+    bgUpdater.autoInstallOnAppQuit = false;
+
+    const checkInBackground = async () => {
+      try {
+        const result = await bgUpdater.checkForUpdates();
+        if (!result?.updateInfo?.version) return;
+        // New version found — download silently
+        await bgUpdater.downloadUpdate();
+        // Downloaded — tell the renderer
+        mainWindow?.webContents.send('updater:update-ready', { version: result.updateInfo.version });
+      } catch {
+        // Silently ignore background check errors
+      }
+    };
+
+    // First check: 30s after window shows (give the app time to settle)
+    mainWindow?.once('ready-to-show', () => {
+      setTimeout(checkInBackground, 30_000);
+    });
+
+    // Recurring: every 4 hours
+    setInterval(checkInBackground, 4 * 60 * 60 * 1000);
+  }
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
     else showMainWindow();

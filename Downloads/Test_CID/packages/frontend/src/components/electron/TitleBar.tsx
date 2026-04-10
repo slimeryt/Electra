@@ -1,17 +1,28 @@
 import { useState, useEffect } from 'react';
-import { Minus, Square, Copy, X } from 'lucide-react';
+import { Minus, Square, Copy, X, RefreshCw } from 'lucide-react';
 import { bridge, platform } from '../../env';
 
 export function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
-  const [isHovered, setIsHovered] = useState<'min' | 'max' | 'close' | null>(null);
+  const [isHovered, setIsHovered] = useState<'min' | 'max' | 'close' | 'update' | null>(null);
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
+  const [isInstalling, setIsInstalling] = useState(false);
 
   useEffect(() => {
     if (!bridge) return;
     bridge.isMaximized().then(setIsMaximized);
-    const unsub = bridge.onMaximizeChange(setIsMaximized);
-    return unsub;
+    const unsubMax = bridge.onMaximizeChange(setIsMaximized);
+    const unsubUpdate = bridge.onUpdateReady((version) => setUpdateVersion(version));
+    return () => { unsubMax(); unsubUpdate(); };
   }, []);
+
+  const handleInstallUpdate = async () => {
+    if (!bridge || isInstalling) return;
+    setIsInstalling(true);
+    await bridge.installUpdate();
+    // If we're still here after a moment, reset (install failed)
+    setTimeout(() => setIsInstalling(false), 5000);
+  };
 
   // Only render on Windows in Electron (Mac has native traffic lights)
   if (!bridge || platform !== 'win32') return null;
@@ -81,8 +92,32 @@ export function TitleBar() {
         </span>
       </div>
 
-      {/* Right: window controls */}
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      {/* Right: update button + window controls */}
+      <div style={{ display: 'flex', alignItems: 'center', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        {updateVersion && (
+          <button
+            onMouseEnter={() => setIsHovered('update')}
+            onMouseLeave={() => setIsHovered(null)}
+            onClick={handleInstallUpdate}
+            disabled={isInstalling}
+            title={`Update to v${updateVersion} — click to install`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              height: 22, padding: '0 10px', marginRight: 8,
+              border: 'none', borderRadius: 4,
+              background: isHovered === 'update' ? '#22a85a' : '#2ecc71',
+              color: '#fff',
+              cursor: isInstalling ? 'wait' : 'pointer',
+              fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+              transition: 'background 120ms',
+              WebkitAppRegion: 'no-drag',
+              animation: isInstalling ? 'none' : 'update-pulse 2s ease-in-out infinite',
+            } as React.CSSProperties}
+          >
+            <RefreshCw size={11} style={{ animation: isInstalling ? 'spin 0.8s linear infinite' : 'none' }} />
+            {isInstalling ? 'Installing…' : `Update v${updateVersion}`}
+          </button>
+        )}
         {btn('min',   () => bridge!.minimizeWindow(), <Minus size={12} />)}
         {btn('max',   () => bridge!.maximizeWindow(), isMaximized ? <Copy size={12} /> : <Square size={12} />)}
         {btn('close', () => bridge!.closeWindow(),    <X size={12} />)}
