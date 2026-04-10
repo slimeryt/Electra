@@ -16,8 +16,11 @@ export default function MainLayout() {
   const pendingCount = requests.filter(r => r.direction === 'incoming').length;
   const isFriendsActive = location.pathname === '/app/friends';
 
+  // Full-screen routes that hide all sidebars
+  const isFullscreen = location.pathname === '/app/settings' || location.pathname.startsWith('/app/discover');
+
   // Only show the DM sidebar when there's no active server AND we're on a home/DM/friends route
-  const showDmSidebar = !activeServerId && (
+  const showDmSidebar = !isFullscreen && !activeServerId && (
     location.pathname === '/app' ||
     location.pathname.startsWith('/app/dms') ||
     location.pathname === '/app/friends'
@@ -40,7 +43,7 @@ export default function MainLayout() {
         <ServerSidebar />
       </div>
 
-      {activeServerId ? (
+      {!isFullscreen && activeServerId ? (
         <div className="app-shell-channels">
           <ChannelSidebar serverId={activeServerId} />
         </div>
@@ -124,7 +127,7 @@ export default function MainLayout() {
         <Outlet />
       </div>
 
-      {activeServerId && (
+      {!isFullscreen && activeServerId && (
         <div className="app-shell-members">
           <MemberList serverId={activeServerId} />
         </div>

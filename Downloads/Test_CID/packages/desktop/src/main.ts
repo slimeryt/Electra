@@ -346,6 +346,7 @@ function createMainWindow() {
     minWidth: 940,
     minHeight: 560,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    icon: path.join(__dirname, '../../assets/icon.ico'),
     backgroundColor: '#0f0f0f',
     show: false,
     webPreferences: {
