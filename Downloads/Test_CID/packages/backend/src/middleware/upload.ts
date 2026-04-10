@@ -39,7 +39,7 @@ export const upload = multer({
 // which avoids cross-origin issues when serving images in the Electron app.
 export const imageUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB max
+  limits: { fileSize: 8 * 1024 * 1024 }, // 8 MB max (supports GIFs)
   fileFilter: (_req, file, cb) => {
     cb(null, file.mimetype.startsWith('image/'));
   },

@@ -9,6 +9,7 @@ import { getSocket } from '../../socket/client';
 import { useContextMenu } from '../../context/ContextMenuContext';
 import { useAuthStore } from '../../store/authStore';
 import { useMessageStore } from '../../store/messageStore';
+import { useProfileCardStore } from '../../store/profileCardStore';
 import type { Message, DmMessage } from '../../types/models';
 
 interface MessageItemProps {
@@ -75,6 +76,7 @@ export function MessageItem({ message, isGrouped = false, isDm = false }: Messag
   const [hovered, setHovered] = useState(false);
   const { show } = useContextMenu();
   const { user: currentUser } = useAuthStore();
+  const openProfileCard = useProfileCardStore(s => s.open);
   const author = (message as any).author;
   const isOwn = author?.id === currentUser?.id;
 
@@ -145,7 +147,11 @@ export function MessageItem({ message, isGrouped = false, isDm = false }: Messag
       {/* Avatar or timestamp spacer */}
       <div style={{ width: 36, flexShrink: 0, display: 'flex', justifyContent: 'center', alignItems: isGrouped ? 'center' : 'flex-start' }}>
         {!isGrouped ? (
-          <Avatar user={author} size={36} />
+          <Avatar
+            user={author}
+            size={36}
+            onClick={author ? (e) => openProfileCard(author.id, e.clientX, e.clientY) : undefined}
+          />
         ) : hovered ? (
           <span style={{
             fontSize: 10,

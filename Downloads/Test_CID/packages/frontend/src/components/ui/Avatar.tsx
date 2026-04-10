@@ -11,6 +11,7 @@ interface AvatarProps {
   user?: AvatarUser;
   size?: number;
   showStatus?: boolean;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 const statusColors: Record<string, string> = {
@@ -32,7 +33,7 @@ function hashColor(name = ''): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export function Avatar({ user, size = 36, showStatus = false }: AvatarProps) {
+export function Avatar({ user, size = 36, showStatus = false, onClick }: AvatarProps) {
   const name = user?.display_name || user?.username || '';
   const bg = hashColor(name);
   const [imgError, setImgError] = useState(false);
@@ -43,7 +44,10 @@ export function Avatar({ user, size = 36, showStatus = false }: AvatarProps) {
   const showImage = !!user?.avatar_url && !imgError;
 
   return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+    <div
+      style={{ position: 'relative', width: size, height: size, flexShrink: 0, cursor: onClick ? 'pointer' : undefined }}
+      onClick={onClick}
+    >
       {showImage ? (
         <img
           src={user!.avatar_url!}

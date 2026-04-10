@@ -4,8 +4,11 @@ export interface User {
   display_name: string;
   email: string;
   avatar_url: string | null;
+  banner_url?: string | null;
   status: 'online' | 'idle' | 'dnd' | 'offline';
   custom_status?: string | null;
+  bio?: string | null;
+  accent_color?: string | null;
   created_at: number;
   updated_at: number;
 }
