@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, ImagePlus, X, RotateCcw } from 'lucide-react';
+import { Camera, ImagePlus, X, RotateCcw, ArrowUpRight, ArrowRight, ArrowDownRight, ArrowDown } from 'lucide-react';
 import { useThemeStore, THEMES } from '../store/themeStore';
 import { useAuthStore } from '../store/authStore';
 import { Input } from '../components/ui/Input';
@@ -343,12 +343,14 @@ export default function UserSettingsPage() {
                         <div style={{ display: 'flex', gap: 6 }}>
                           {[45, 90, 135, 180].map(a => (
                             <button key={a} onClick={() => setGradAngle(a)} style={{
+                              display: 'flex', alignItems: 'center', gap: 4,
                               padding: '5px 10px', border: `1px solid ${gradAngle === a ? 'var(--accent)' : 'var(--border)'}`,
                               borderRadius: 'var(--radius-sm)', background: gradAngle === a ? 'rgba(88,101,242,0.15)' : 'var(--bg-overlay)',
                               color: gradAngle === a ? 'var(--accent)' : 'var(--text-secondary)',
                               fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
                             }}>
-                              {a === 45 ? '↗' : a === 90 ? '→' : a === 135 ? '↘' : '↓'} {a}°
+                              {a === 45 ? <ArrowUpRight size={13} /> : a === 90 ? <ArrowRight size={13} /> : a === 135 ? <ArrowDownRight size={13} /> : <ArrowDown size={13} />}
+                              <span>{a}°</span>
                             </button>
                           ))}
                         </div>
