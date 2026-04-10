@@ -351,7 +351,9 @@ function createMainWindow() {
     y: windowState.y,
     minWidth: 940,
     minHeight: 560,
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    frame: process.platform !== 'win32',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+    titleBarOverlay: false,
     icon: app.isPackaged
       ? path.join(process.resourcesPath, '..', 'assets', 'icon.ico')
       : path.join(__dirname, '../../assets/icon.ico'),

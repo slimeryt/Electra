@@ -15,6 +15,7 @@ import WelcomePage from './pages/WelcomePage';
 import FriendsPage from './pages/FriendsPage';
 import { ScreenSharePickerModal } from './components/electron/ScreenSharePickerModal';
 import { ProfileCard } from './components/ui/ProfileCard';
+import { TitleBar } from './components/electron/TitleBar';
 import './store/themeStore'; // ensures theme is applied from localStorage on startup
 
 // Listens for the auth:logout event fired by the axios interceptor when
@@ -57,6 +58,7 @@ export default function App() {
     <BrowserRouter>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <ContextMenuProvider>
+        <TitleBar />
         <ScreenSharePickerModal />
         <AuthLogoutListener />
         <ProfileCard />

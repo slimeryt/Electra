@@ -12,6 +12,8 @@ html, body, #root {
   width: 100%;
   max-width: 100vw;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ─── App shell (MainLayout) — scales with window / viewport ───────────────── */
@@ -22,9 +24,9 @@ html, body, #root {
   box-sizing: border-box;
   width: 100%;
   max-width: 100vw;
-  min-height: 100dvh;
-  height: 100dvh;
-  max-height: 100dvh;
+  flex: 1;
+  min-height: 0;
+  height: 0; /* flex child — actual height comes from flex: 1 */
   padding: clamp(4px, 1.2vw, 10px);
   gap: clamp(4px, 1vw, 8px);
   overflow: hidden;
