@@ -1,10 +1,25 @@
 import { app, BrowserWindow, shell, session, Menu, protocol, Tray, nativeImage, dialog } from 'electron';
 import path from 'path';
 import os from 'os';
+import fs from 'fs';
 import zlib from 'zlib';
 import { autoUpdater } from 'electron-updater';
 import { registerIpcHandlers } from './ipc/handlers';
 import { registerDisplayMediaHandler } from './displayMedia';
+
+// ─── Updater logger ──────────────────────────────────────────────────────────
+// Writes to ~/Electra/Logs/updater.log so we can diagnose update failures.
+function makeUpdaterLogger() {
+  const logDir = path.join(os.homedir(), 'Electra', 'Logs');
+  try { fs.mkdirSync(logDir, { recursive: true }); } catch {}
+  const logFile = path.join(logDir, 'updater.log');
+  const write = (level: string, ...args: unknown[]) => {
+    const line = `[${new Date().toISOString()}] [${level}] ${args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')}\n`;
+    try { fs.appendFileSync(logFile, line); } catch {}
+    console[level as 'info' | 'warn' | 'error']?.(...args);
+  };
+  return { info: (...a: unknown[]) => write('info', ...a), warn: (...a: unknown[]) => write('warn', ...a), error: (...a: unknown[]) => write('error', ...a), debug: (...a: unknown[]) => write('debug', ...a), verbose: (...a: unknown[]) => write('debug', ...a) };
+}
 
 // @ts-ignore
 import Store from 'electron-store';
@@ -64,6 +79,7 @@ function splashStopFakeLoader() {
 async function runMandatoryUpdateGate(): Promise<boolean> {
   if (!app.isPackaged) return true;
 
+  autoUpdater.logger = makeUpdaterLogger();
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.allowPrerelease = false;
@@ -105,8 +121,11 @@ async function runMandatoryUpdateGate(): Promise<boolean> {
     let result;
     try {
       result = await autoUpdater.checkForUpdates();
-    } catch {
+    } catch (err) {
       autoUpdater.off('download-progress', onProgress);
+      (autoUpdater.logger as any)?.error('checkForUpdates failed:', err);
+      splashSetStatus('Starting… (update check failed)');
+      await new Promise(r => setTimeout(r, 1500));
       splashSetStatus('Starting…');
       return true;
     }
@@ -170,8 +189,11 @@ async function runMandatoryUpdateGate(): Promise<boolean> {
     }, 450);
 
     return false;
-  } catch {
+  } catch (err) {
     autoUpdater.off('download-progress', onProgress);
+    (autoUpdater.logger as any)?.error('Update gate error:', err);
+    splashSetStatus('Starting… (update error)');
+    await new Promise(r => setTimeout(r, 1500));
     splashSetStatus('Starting…');
     return true;
   }
