@@ -287,9 +287,11 @@ function makeSolidPNG(w: number, h: number, r: number, g: number, b: number): Bu
 // ─── Tray ────────────────────────────────────────────────────────────────────
 
 function createTray() {
-  const iconBuf = makeSolidPNG(16, 16, 88, 101, 242);
-  const icon = nativeImage.createFromBuffer(iconBuf);
-  tray = new Tray(icon);
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, '..', 'assets', 'icon.ico')
+    : path.join(__dirname, '../../assets/icon.ico');
+  const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
+  tray = new Tray(icon.isEmpty() ? nativeImage.createFromBuffer(makeSolidPNG(16, 16, 88, 101, 242)) : icon);
   tray.setToolTip('Electra');
 
   const menu = Menu.buildFromTemplate([
@@ -310,6 +312,9 @@ function createTray() {
 
 function createSplashWindow(): Promise<void> {
   return new Promise((resolve) => {
+    const splashIconPath = app.isPackaged
+      ? path.join(process.resourcesPath, '..', 'assets', 'icon.ico')
+      : path.join(__dirname, '../../assets/icon.ico');
     splashWindow = new BrowserWindow({
       width: 300,
       height: 340,
@@ -319,6 +324,7 @@ function createSplashWindow(): Promise<void> {
       center: true,
       skipTaskbar: true,
       alwaysOnTop: true,
+      icon: splashIconPath,
       backgroundColor: '#1a1a2e',
       webPreferences: { nodeIntegration: false, contextIsolation: true },
     });
@@ -346,7 +352,9 @@ function createMainWindow() {
     minWidth: 940,
     minHeight: 560,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    icon: path.join(__dirname, '../../assets/icon.ico'),
+    icon: app.isPackaged
+      ? path.join(process.resourcesPath, '..', 'assets', 'icon.ico')
+      : path.join(__dirname, '../../assets/icon.ico'),
     backgroundColor: '#0f0f0f',
     show: false,
     webPreferences: {
