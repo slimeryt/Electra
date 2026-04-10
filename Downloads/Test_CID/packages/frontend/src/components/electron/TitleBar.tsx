@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Minus, Square, Copy, X } from 'lucide-react';
 import { bridge, platform } from '../../env';
 
 export function TitleBar() {
@@ -82,44 +83,10 @@ export function TitleBar() {
 
       {/* Right: window controls */}
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        {btn('min', () => bridge!.minimizeWindow(), <MinimizeIcon />)}
-        {btn('max', () => bridge!.maximizeWindow(), isMaximized ? <RestoreIcon /> : <MaximizeIcon />)}
-        {btn('close', () => bridge!.closeWindow(), <CloseIcon />)}
+        {btn('min',   () => bridge!.minimizeWindow(), <Minus size={12} />)}
+        {btn('max',   () => bridge!.maximizeWindow(), isMaximized ? <Copy size={12} /> : <Square size={12} />)}
+        {btn('close', () => bridge!.closeWindow(),    <X size={12} />)}
       </div>
     </div>
-  );
-}
-
-function MinimizeIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10">
-      <rect x="0" y="4.5" width="10" height="1" fill="currentColor" />
-    </svg>
-  );
-}
-
-function MaximizeIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10">
-      <rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1" />
-    </svg>
-  );
-}
-
-function RestoreIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10">
-      <rect x="2" y="0" width="8" height="8" fill="none" stroke="currentColor" strokeWidth="1" />
-      <rect x="0" y="2" width="8" height="8" fill="var(--bg-base)" stroke="currentColor" strokeWidth="1" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10">
-      <line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" strokeWidth="1.2" />
-      <line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" strokeWidth="1.2" />
-    </svg>
   );
 }
