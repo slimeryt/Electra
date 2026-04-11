@@ -6,7 +6,7 @@
   "main": "dist/main.js",
   "scripts": {
     "dev": "concurrently \"tsc -w -p tsconfig.json\" \"wait-on tcp:5173 && electron .\"",
-    "build": "node build-win.js",
+    "build": "cd ../frontend && npx vite build && cd ../desktop && node build-win.js",
     "typecheck": "node tsc-run.js --noEmit",
     "pack": "node build-win.js --dir"
   },
