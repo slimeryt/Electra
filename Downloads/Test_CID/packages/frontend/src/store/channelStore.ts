@@ -4,6 +4,8 @@ import { serversApi } from '../api/servers';
 
 interface ChannelState {
   channelsByServer: Record<string, Channel[]>;
+  /** After first fetchChannels(serverId) settles (ok or error); avoids routing forum as text before list exists. */
+  channelListReadyByServer: Record<string, boolean>;
   activeChannelId: string | null;
 
   fetchChannels: (serverId: string) => Promise<void>;
@@ -16,11 +18,22 @@ interface ChannelState {
 
 export const useChannelStore = create<ChannelState>((set, get) => ({
   channelsByServer: {},
+  channelListReadyByServer: {},
   activeChannelId: null,
 
   fetchChannels: async (serverId) => {
-    const channels = await serversApi.getChannels(serverId);
-    set(s => ({ channelsByServer: { ...s.channelsByServer, [serverId]: channels } }));
+    try {
+      const channels = await serversApi.getChannels(serverId);
+      set(s => ({
+        channelsByServer: { ...s.channelsByServer, [serverId]: channels },
+        channelListReadyByServer: { ...s.channelListReadyByServer, [serverId]: true },
+      }));
+    } catch {
+      set(s => ({
+        channelsByServer: { ...s.channelsByServer, [serverId]: [] },
+        channelListReadyByServer: { ...s.channelListReadyByServer, [serverId]: true },
+      }));
+    }
   },
 
   addChannel: (channel) => set(s => ({

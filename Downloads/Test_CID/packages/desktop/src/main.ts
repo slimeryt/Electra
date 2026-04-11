@@ -1,4 +1,15 @@
-import { app, BrowserWindow, shell, session, Menu, protocol, Tray, nativeImage, dialog } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  shell,
+  session,
+  Menu,
+  protocol,
+  Tray,
+  nativeImage,
+  dialog,
+  type MenuItemConstructorOptions,
+} from 'electron';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
@@ -359,6 +370,7 @@ function createMainWindow() {
     frame: process.platform !== 'win32',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     titleBarOverlay: false,
+    autoHideMenuBar: true,
     icon: app.isPackaged
       ? path.join(process.resourcesPath, '..', 'assets', 'icon.ico')
       : path.join(__dirname, '../../assets/icon.ico'),
@@ -447,10 +459,48 @@ function createMainWindow() {
 
 }
 
+// ─── Application menu (required for text-field accelerators) ────────────────
+// Menu.setApplicationMenu(null) breaks Ctrl+A / Ctrl+C / Ctrl+V in the renderer on Windows.
+// Minimal Edit menu + autoHideMenuBar keeps shortcuts without showing a menu bar (Alt toggles).
+
+function setMinimalAppMenu() {
+  const isMac = process.platform === 'darwin';
+  const macAppSubmenu: MenuItemConstructorOptions[] = [
+    { role: 'about' },
+    { type: 'separator' },
+    { role: 'services' },
+    { type: 'separator' },
+    { role: 'hide' },
+    { role: 'hideOthers' },
+    { role: 'unhide' },
+    { type: 'separator' },
+    { role: 'quit' },
+  ];
+  const editSubmenu: MenuItemConstructorOptions[] = [
+    { role: 'undo' },
+    { role: 'redo' },
+    { type: 'separator' },
+    { role: 'cut' },
+    { role: 'copy' },
+    { role: 'paste' },
+    ...(isMac ? [{ role: 'pasteAndMatchStyle' as const }] : []),
+    { role: 'delete' },
+    { type: 'separator' },
+    { role: 'selectAll' },
+  ];
+  const template: MenuItemConstructorOptions[] = isMac
+    ? [
+        { label: app.name, submenu: macAppSubmenu },
+        { label: 'Edit', submenu: editSubmenu },
+      ]
+    : [{ label: 'Edit', submenu: editSubmenu }];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
 // ─── App lifecycle ────────────────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
-  Menu.setApplicationMenu(null);
+  setMinimalAppMenu();
 
   // Register app:// → resources/frontend file server
   // Uses protocol.handle (Electron 25+) so we can set response headers (CSP).

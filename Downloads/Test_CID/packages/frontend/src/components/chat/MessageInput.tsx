@@ -166,6 +166,7 @@ export function MessageInput({
       if (e.key === 'Escape') { setMentionQuery(null); return; }
     }
     if (e.key === 'Enter' && !e.shiftKey) {
+      if (e.nativeEvent.isComposing) return;
       e.preventDefault();
       handleSend();
     }
@@ -256,7 +257,7 @@ export function MessageInput({
                   <Spinner size={16} />
                 </div>
               )}
-              <button onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))} style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>✕</button>
+              <button type="button" onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))} style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>✕</button>
             </div>
           ))}
         </div>
@@ -280,7 +281,7 @@ export function MessageInput({
               — {replyTo.content || '(attachment)'}
             </span>
           </div>
-          <button onClick={closeReply} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '2px', display: 'flex', flexShrink: 0 }}>
+          <button type="button" onClick={closeReply} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '2px', display: 'flex', flexShrink: 0 }}>
             <X size={14} />
           </button>
         </div>
@@ -301,7 +302,7 @@ export function MessageInput({
           boxShadow: barShadow,
         }}
       >
-        <button onClick={() => fileInputRef.current?.click()} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 22, padding: '4px 6px', borderRadius: 'var(--radius-sm)', flexShrink: 0, transition: 'var(--transition)', alignSelf: 'flex-end', marginBottom: 4, lineHeight: 1 }}
+        <button type="button" onClick={() => fileInputRef.current?.click()} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 22, padding: '4px 6px', borderRadius: 'var(--radius-sm)', flexShrink: 0, transition: 'var(--transition)', alignSelf: 'flex-end', marginBottom: 4, lineHeight: 1 }}
           onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-hover)'; }}
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none'; }}
           title="Attach file">+</button>
@@ -318,7 +319,7 @@ export function MessageInput({
           onInput={e => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 200)}px`; }}
         />
 
-        <button onClick={handleSend} disabled={!canSend} style={{ background: canSend ? 'var(--accent)' : 'var(--bg-hover)', border: 'none', color: canSend ? '#fff' : 'var(--text-muted)', cursor: canSend ? 'pointer' : 'not-allowed', width: 32, height: 32, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, transition: 'var(--transition)', alignSelf: 'flex-end', marginBottom: 4 }}
+        <button type="button" onClick={handleSend} disabled={!canSend} style={{ background: canSend ? 'var(--accent)' : 'var(--bg-hover)', border: 'none', color: canSend ? '#fff' : 'var(--text-muted)', cursor: canSend ? 'pointer' : 'not-allowed', width: 32, height: 32, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, transition: 'var(--transition)', alignSelf: 'flex-end', marginBottom: 4 }}
           onMouseEnter={e => { if (canSend) e.currentTarget.style.background = 'var(--accent-hover)'; }}
           onMouseLeave={e => { if (canSend) e.currentTarget.style.background = 'var(--accent)'; }}>➤</button>
       </div>
