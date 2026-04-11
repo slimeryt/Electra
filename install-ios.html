@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Electra on iPhone &amp; iPad — Add to Home Screen</title>
+  <meta name="description" content="Install Electra as an app on iOS using Safari and Add to Home Screen. Step-by-step guide." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #060608;
+      --bg-card: #0c0c14;
+      --border: rgba(255,255,255,0.08);
+      --text: #f0f0f4;
+      --muted: #6b6b80;
+      --accent: #5865f2;
+      --gradient: linear-gradient(135deg, #5865f2 0%, #7c3aed 100%);
+      --radius: 14px;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.65;
+      padding: 24px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    a { color: #a5adff; }
+    .back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 28px;
+    }
+    .back:hover { color: var(--text); }
+    h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: clamp(1.75rem, 5vw, 2.25rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .lead {
+      color: var(--muted);
+      font-size: 17px;
+      margin-bottom: 36px;
+    }
+    .note {
+      background: rgba(88,101,242,0.1);
+      border: 1px solid rgba(88,101,242,0.25);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 32px;
+      font-size: 14px;
+      color: #c4c8f5;
+    }
+    .note strong { color: #fff; }
+    ol {
+      list-style: none;
+      counter-reset: step;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    li {
+      counter-increment: step;
+      position: relative;
+      padding-left: 52px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 20px 20px 56px;
+    }
+    li::before {
+      content: counter(step);
+      position: absolute;
+      left: 16px;
+      top: 18px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--gradient);
+      color: #fff;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    li strong {
+      display: block;
+      font-family: 'Poppins', sans-serif;
+      font-size: 15px;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+    li p { color: var(--muted); font-size: 14px; }
+    li code {
+      background: rgba(88,101,242,0.15);
+      color: #a5adff;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <a class="back" href="index.html">← Back to Electra</a>
+  <h1>Use Electra on iPhone &amp; iPad</h1>
+  <p class="lead">Apple does not allow installing arbitrary apps outside the App Store the same way Android does. You can still run Electra like a native app by adding the web app to your Home Screen from <strong>Safari</strong>.</p>
+
+  <div class="note">
+    <strong>You need:</strong> the HTTPS URL where Electra’s web app is hosted (for example your own deployment or your community’s server). Ask your server admin if you are not sure what link to use.
+  </div>
+
+  <ol>
+    <li>
+      <strong>Open Safari</strong>
+      <p>On iOS you must use <strong>Safari</strong> (not Chrome or in-app browsers) for the best “Add to Home Screen” experience.</p>
+    </li>
+    <li>
+      <strong>Go to your Electra URL</strong>
+      <p>Type or paste your site address in the address bar and sign in as usual. Wait until the app has fully loaded.</p>
+    </li>
+    <li>
+      <strong>Open the Share menu</strong>
+      <p>Tap the <strong>Share</strong> button (square with an arrow pointing up) at the bottom on iPhone, or top on iPad.</p>
+    </li>
+    <li>
+      <strong>Add to Home Screen</strong>
+      <p>Scroll down and tap <strong>Add to Home Screen</strong>. Choose a name (e.g. <code>Electra</code>) and tap <strong>Add</strong>.</p>
+    </li>
+    <li>
+      <strong>Launch from the icon</strong>
+      <p>Open Electra from your new home screen icon. It opens full screen, similar to a standalone app. Microphone and camera may prompt for permission when you join voice or video.</p>
+    </li>
+  </ol>
+
+  <footer>
+    Tip: keep Electra open in Safari once before adding to Home Screen so icons and offline cache can load. For updates, pull to refresh inside the app or clear Safari cache if something looks stuck.
+  </footer>
+</body>
+</html>

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Electra — Chat. Voice. Together.</title>
-  <meta name="description" content="A fast, private Discord alternative. Real-time messaging, voice & video, file sharing. Download free for Windows." />
+  <meta name="description" content="A fast, private Discord alternative. Real-time messaging, voice & video, file sharing. Download for Windows, Android APK, or use Electra on iPhone via Safari." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -138,6 +138,27 @@
     .btn-outline:hover {
       background: var(--bg-hover);
       border-color: rgba(255,255,255,0.18);
+    }
+    .btn-android {
+      background: linear-gradient(135deg, #3ddc84 0%, #0a8043 100%);
+      color: #031;
+      box-shadow: 0 4px 20px rgba(61,220,132,0.25);
+    }
+    .btn-android:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(61,220,132,0.38);
+      color: #021;
+    }
+    .btn-ios {
+      background: linear-gradient(135deg, #3a3a44 0%, #1c1c22 100%);
+      color: #f0f0f4;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    }
+    .btn-ios:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,0.2);
+      background: linear-gradient(135deg, #48485a 0%, #25252e 100%);
     }
 
     /* ── Hero ── */
@@ -696,11 +717,13 @@
       <ul class="nav-links">
         <li><a href="#features">Features</a></li>
         <li><a href="#how">How it works</a></li>
+        <li><a href="https://github.com/slimeryt/Electra/releases/latest/download/Electra-Android.apk">Android</a></li>
+        <li><a href="install-ios.html">iOS guide</a></li>
         <li><a href="https://github.com/slimeryt/Electra" target="_blank" rel="noopener">GitHub</a></li>
       </ul>
       <a class="btn btn-primary" href="https://github.com/slimeryt/Electra/releases/latest/download/ElectraInstaller.exe">
         <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download
+        Windows
       </a>
     </div>
   </nav>
@@ -718,11 +741,19 @@
     <div class="hero-actions fade-up delay-3">
       <a class="btn btn-primary btn-lg" href="https://github.com/slimeryt/Electra/releases/latest/download/ElectraInstaller.exe">
         <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download for Windows
+        Windows
+      </a>
+      <a class="btn btn-android btn-lg" href="https://github.com/slimeryt/Electra/releases/latest/download/Electra-Android.apk">
+        <svg class="icon icon-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993.0005.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993 0 .5511-.4483.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.2439 13.8533 7.5758 12 7.5758s-3.5902.6681-5.1349 1.8587L4.8429 5.9313a.4161.4161 0 00-.5676-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6587 0 18.76h24c-.3435-4.1013-2.6892-7.5733-6.1185-9.4386"/></svg>
+        Android (APK)
+      </a>
+      <a class="btn btn-ios btn-lg" href="install-ios.html">
+        <svg class="icon icon-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        iPhone &amp; iPad
       </a>
       <a class="btn btn-outline btn-lg" href="https://github.com/slimeryt/Electra" target="_blank" rel="noopener">
         <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-        View on GitHub
+        GitHub
       </a>
     </div>
 
@@ -944,11 +975,21 @@
     <div class="container">
       <div class="cta-box">
         <h2>Ready to try Electra?</h2>
-        <p>Free, open source, and built to last. Download the Windows app and be chatting in under a minute.</p>
-        <a class="btn btn-primary btn-lg" href="https://github.com/slimeryt/Electra/releases/latest/download/ElectraInstaller.exe">
-          <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download for Windows — Free
-        </a>
+        <p>Free, open source, and built to last. Pick your platform — Windows installer, Android APK, or iPhone/iPad via Safari.</p>
+        <div class="hero-actions" style="margin-bottom: 0;">
+          <a class="btn btn-primary btn-lg" href="https://github.com/slimeryt/Electra/releases/latest/download/ElectraInstaller.exe">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Windows
+          </a>
+          <a class="btn btn-android btn-lg" href="https://github.com/slimeryt/Electra/releases/latest/download/Electra-Android.apk">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993.0005.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993 0 .5511-.4483.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.2439 13.8533 7.5758 12 7.5758s-3.5902.6681-5.1349 1.8587L4.8429 5.9313a.4161.4161 0 00-.5676-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6587 0 18.76h24c-.3435-4.1013-2.6892-7.5733-6.1185-9.4386"/></svg>
+            Android (APK)
+          </a>
+          <a class="btn btn-ios btn-lg" href="install-ios.html">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+            iPhone &amp; iPad guide
+          </a>
+        </div>
         <div class="cta-note">
           <svg class="icon icon-xs" style="stroke:var(--muted)" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
           Open source on GitHub · MIT License
