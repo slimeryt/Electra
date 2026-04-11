@@ -145,6 +145,16 @@ export function MessageItem({ message, isGrouped = false, isDm = false }: Messag
               <span style={{ fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>
                 {author?.display_name || 'Unknown'}
               </span>
+              {author?.is_bot === 1 && (
+                <span style={{
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.05em',
+                  padding: '1px 5px', borderRadius: 3,
+                  background: 'var(--accent)', color: '#fff',
+                  lineHeight: 1.6, alignSelf: 'center',
+                }}>
+                  BOT
+                </span>
+              )}
               <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.01em' }}>
                 {formatTime(message.created_at)}
               </span>

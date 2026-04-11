@@ -2,8 +2,10 @@ import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import * as serverService from '../services/serverService';
 import * as roleService from '../services/roleService';
+import * as botService from '../services/botService';
 import db from '../db/connection';
 import { imageUpload } from '../middleware/upload';
+import { getIo } from '../socket/index';
 
 // One-time migration: add is_public column
 try { db.exec('ALTER TABLE servers ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0'); } catch { /* exists */ }
@@ -99,7 +101,10 @@ router.post('/join', (req: AuthRequest, res, next) => {
   try {
     const { invite_code } = req.body;
     if (!invite_code) return res.status(400).json({ error: 'invite_code required' });
-    res.json(serverService.joinServer(invite_code, req.userId!));
+    const server = serverService.joinServer(invite_code, req.userId!);
+    // Trigger welcome + auto-role bots after join
+    try { botService.handleMemberJoin(getIo(), (server as any).id, req.userId!); } catch {}
+    res.json(server);
   } catch (e) { next(e); }
 });
 
@@ -149,6 +154,27 @@ router.post('/:serverId/members/:targetUserId/roles/:roleId', (req: AuthRequest,
 router.delete('/:serverId/members/:targetUserId/roles/:roleId', (req: AuthRequest, res, next) => {
   try {
     res.json(roleService.removeRole(req.params.serverId, req.params.roleId, req.params.targetUserId, req.userId!));
+  } catch (e) { next(e); }
+});
+
+// ─── Bot config routes ────────────────────────────────────────────────────────
+function requireAdminOrOwner(req: AuthRequest, res: any, next: any) {
+  const member = db.prepare('SELECT role FROM server_members WHERE server_id = ? AND user_id = ?').get(req.params.serverId, req.userId!) as { role: string } | undefined;
+  if (!member || (member.role !== 'owner' && member.role !== 'admin')) return res.status(403).json({ error: 'Forbidden' });
+  next();
+}
+
+router.get('/:serverId/bots', requireAdminOrOwner, (req: AuthRequest, res, next) => {
+  try {
+    res.json(botService.getBotConfigs(req.params.serverId));
+  } catch (e) { next(e); }
+});
+
+router.put('/:serverId/bots/:type', requireAdminOrOwner, (req: AuthRequest, res, next) => {
+  try {
+    const { enabled, config } = req.body;
+    botService.setBotConfig(req.params.serverId, req.params.type as botService.BotType, !!enabled, config || {});
+    res.json(botService.getBotConfigs(req.params.serverId));
   } catch (e) { next(e); }
 });
 

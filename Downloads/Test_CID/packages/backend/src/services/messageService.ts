@@ -17,7 +17,7 @@ interface Message {
 
 function enrichMessage(msg: Message) {
   const author = db.prepare(
-    'SELECT id, username, display_name, avatar_url FROM users WHERE id = ?'
+    'SELECT id, username, display_name, avatar_url, is_bot FROM users WHERE id = ?'
   ).get(msg.author_id);
 
   const attachments = db.prepare(`
@@ -33,7 +33,7 @@ function enrichMessage(msg: Message) {
       reply_to = {
         id: ref.id,
         content: ref.content,
-        author: db.prepare('SELECT id, username, display_name, avatar_url FROM users WHERE id = ?').get(ref.author_id),
+        author: db.prepare('SELECT id, username, display_name, avatar_url, is_bot FROM users WHERE id = ?').get(ref.author_id),
       };
     }
   }

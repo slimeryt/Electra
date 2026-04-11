@@ -48,6 +48,7 @@ export interface MessageAuthor {
   username: string;
   display_name: string;
   avatar_url: string | null;
+  is_bot?: number;
 }
 
 export interface ReplyPreview {

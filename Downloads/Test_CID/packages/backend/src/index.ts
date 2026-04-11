@@ -9,6 +9,7 @@ import { runMigrations } from './db/migrations';
 import apiRouter from './routes/index';
 import { errorHandler } from './middleware/error';
 import { createSocketServer } from './socket/index';
+import { initBot } from './services/botService';
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -44,6 +45,7 @@ app.use(errorHandler);
 
 // Init DB + start server
 runMigrations();
+initBot();
 const port = parseInt(process.env.PORT || '3001', 10);
 createSocketServer(httpServer);
 

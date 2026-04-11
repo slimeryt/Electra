@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Settings, Users, Hash, Link, AlertTriangle, ChevronLeft, Volume2, Megaphone, Trash2, Shield, Camera, Check } from 'lucide-react';
+import { Settings, Users, Hash, Link, AlertTriangle, ChevronLeft, Volume2, Megaphone, Trash2, Shield, Camera, Check, Bot } from 'lucide-react';
 import { useServerStore } from '../store/serverStore';
 import { useChannelStore } from '../store/channelStore';
 import { useAuthStore } from '../store/authStore';
@@ -12,18 +12,20 @@ import { Button } from '../components/ui/Button';
 import { Avatar } from '../components/ui/Avatar';
 import { ServerMemberWithRoles, ServerRole, Channel } from '../types/models';
 import { RolesEditor } from '../components/server/RolesEditor';
+import { BotsEditor } from '../components/server/BotsEditor';
 import { isElectron } from '../env';
 
 const BASE = isElectron
   ? (import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001')
   : '';
 
-type Tab = 'overview' | 'members' | 'roles' | 'channels' | 'invites' | 'danger';
+type Tab = 'overview' | 'members' | 'roles' | 'bots' | 'channels' | 'invites' | 'danger';
 
 const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'overview',  label: 'Overview',    icon: <Settings size={15} /> },
   { id: 'members',   label: 'Members',     icon: <Users size={15} /> },
   { id: 'roles',     label: 'Roles',       icon: <Shield size={15} /> },
+  { id: 'bots',      label: 'Bots',        icon: <Bot size={15} /> },
   { id: 'channels',  label: 'Channels',    icon: <Hash size={15} /> },
   { id: 'invites',   label: 'Invites',     icon: <Link size={15} /> },
   { id: 'danger',    label: 'Danger Zone', icon: <AlertTriangle size={15} /> },
@@ -633,6 +635,7 @@ export default function ServerSettingsPage() {
           {activeTab === 'overview'  && <OverviewTab serverId={serverId!} />}
           {activeTab === 'members'   && <MembersTab serverId={serverId!} />}
           {activeTab === 'roles'     && <RolesEditor serverId={serverId!} />}
+          {activeTab === 'bots'      && <BotsEditor serverId={serverId!} />}
           {activeTab === 'channels'  && <ChannelsTab serverId={serverId!} />}
           {activeTab === 'invites'   && <InvitesTab serverId={serverId!} />}
           {activeTab === 'danger'    && <DangerTab serverId={serverId!} />}

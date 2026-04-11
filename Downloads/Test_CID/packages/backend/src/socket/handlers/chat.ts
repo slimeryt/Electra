@@ -1,5 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import * as messageService from '../../services/messageService';
+import * as botService from '../../services/botService';
 import db from '../../db/connection';
 
 const typingTimers = new Map<string, NodeJS.Timeout>();
@@ -25,6 +26,14 @@ export function registerChatHandlers(io: Server, socket: Socket) {
       if (!channel) return callback?.({ error: 'Forbidden' });
 
       const msg = messageService.createMessage(data.channel_id, userId, data.content, data.file_ids || [], data.reply_to_id);
+
+      // Auto-mod: delete and silently drop if content matches banned words
+      const serverRow = db.prepare('SELECT server_id FROM channels WHERE id = ?').get(data.channel_id) as any;
+      if (serverRow && botService.checkAutoMod(serverRow.server_id, (msg as any).id, data.content || null)) {
+        io.to(`channel:${data.channel_id}`).emit('message_delete', { message_id: (msg as any).id, channel_id: data.channel_id });
+        return callback?.({ ok: true, message: msg });
+      }
+
       io.to(`channel:${data.channel_id}`).emit('message_create', msg);
 
       // Emit mention notifications
