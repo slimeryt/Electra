@@ -74,6 +74,19 @@
   --shadow-panel:  0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
   --shadow-float:  0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.07), 0 0 48px rgba(88,101,242,0.10);
   --shadow-accent: 0 4px 24px rgba(88,101,242,0.45);
+
+  /* Mobile shell (≤768px) — was hardcoded; must track data-theme */
+  --mobile-shell-bg:    #1e1f22;
+  --mobile-drawer-bg:   #2b2d31;
+  --mobile-rail-bg:     #1e1f22;
+  --mobile-rail-border: rgba(0, 0, 0, 0.22);
+  --mobile-main-bg:     #313338;
+  --mobile-bar-bg:      #313338;
+  --mobile-bar-border:  rgba(0, 0, 0, 0.22);
+  --mobile-bar-text:    #f2f3f5;
+  --mobile-bar-muted:   #949ba4;
+  --mobile-bar-icon:    #dbdee1;
+  --mobile-bar-hash:    #6d6f78;
 }
 
 /* ── AMOLED theme ─────────────────────────────────────────────────────────── */
@@ -92,6 +105,18 @@
   --shadow-sm:     0 2px 8px rgba(0,0,0,0.9);
   --shadow-md:     0 4px 20px rgba(0,0,0,0.95);
   --shadow-lg:     0 8px 32px rgba(0,0,0,0.99);
+
+  --mobile-shell-bg:    #050505;
+  --mobile-drawer-bg:   #0c0c0c;
+  --mobile-rail-bg:     #050505;
+  --mobile-rail-border: rgba(255, 255, 255, 0.06);
+  --mobile-main-bg:     #0a0a0a;
+  --mobile-bar-bg:      #0a0a0a;
+  --mobile-bar-border:  rgba(255, 255, 255, 0.06);
+  --mobile-bar-text:    #f2f2f2;
+  --mobile-bar-muted:   #8a8a95;
+  --mobile-bar-icon:    #c8c8d0;
+  --mobile-bar-hash:    #5c5c68;
 }
 
 /* ── Midnight theme (deep blue) ───────────────────────────────────────────── */
@@ -113,6 +138,18 @@
   --shadow-sm:     0 2px 8px rgba(0,0,0,0.6);
   --shadow-md:     0 4px 20px rgba(0,0,0,0.7);
   --shadow-lg:     0 8px 32px rgba(0,0,0,0.8);
+
+  --mobile-shell-bg:    #101320;
+  --mobile-drawer-bg:   #1a1f36;
+  --mobile-rail-bg:     #101320;
+  --mobile-rail-border: rgba(0, 0, 0, 0.28);
+  --mobile-main-bg:     #14192e;
+  --mobile-bar-bg:      #14192e;
+  --mobile-bar-border:  rgba(0, 0, 0, 0.28);
+  --mobile-bar-text:    #e8eaf6;
+  --mobile-bar-muted:   #8890b8;
+  --mobile-bar-icon:    #b8bdd8;
+  --mobile-bar-hash:    #5c6494;
 }
 
 /* ── Light theme ──────────────────────────────────────────────────────────── */
@@ -144,4 +181,16 @@
   --shadow-panel:  0 8px 40px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.05);
   --shadow-float:  0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.08);
   --gradient-surface: linear-gradient(160deg, rgba(88,101,242,0.05) 0%, rgba(124,58,237,0.02) 100%);
+
+  --mobile-shell-bg:    var(--bg-base);
+  --mobile-drawer-bg:   var(--bg-elevated);
+  --mobile-rail-bg:     var(--bg-overlay);
+  --mobile-rail-border: var(--border-strong);
+  --mobile-main-bg:     #ffffff;
+  --mobile-bar-bg:      #ffffff;
+  --mobile-bar-border:  var(--border-strong);
+  --mobile-bar-text:    var(--text-primary);
+  --mobile-bar-muted:   var(--text-secondary);
+  --mobile-bar-icon:    var(--text-secondary);
+  --mobile-bar-hash:    var(--text-muted);
 }

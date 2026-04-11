@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persistNativeTheme } from '../lib/nativePreferences';
 
 export type Theme = 'dark' | 'amoled' | 'midnight' | 'light';
 
@@ -27,5 +28,6 @@ export const useThemeStore = create<ThemeState>((set) => ({
     localStorage.setItem('electra-theme', theme);
     applyTheme(theme);
     set({ theme });
+    void persistNativeTheme(theme);
   },
 }));

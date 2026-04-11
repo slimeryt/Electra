@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { isElectron } from '../env';
 import { clearPersistedAuth, persistAuthTokens } from '../lib/electronAuthPersist';
+import { clearNativeSession, persistNativeSession } from '../lib/nativePreferences';
 import { getBackendOrigin } from '../lib/backendOrigin';
 
 const BASE = getBackendOrigin();
@@ -50,6 +51,7 @@ client.interceptors.response.use(
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
         if (isElectron) void persistAuthTokens(data.accessToken, data.refreshToken);
+        void persistNativeSession();
 
         refreshQueue.forEach((cb) => cb(data.accessToken));
         refreshQueue = [];
@@ -65,6 +67,7 @@ client.interceptors.response.use(
         const isAuthRejected = axios.isAxiosError(refreshError) &&
           (refreshError.response?.status === 401 || refreshError.response?.status === 403);
         if (isElectron && isAuthRejected) void clearPersistedAuth();
+        if (isAuthRejected) void clearNativeSession();
         // Use hash-less navigation so the SPA handles routing correctly in Electron
         window.dispatchEvent(new CustomEvent('auth:logout'));
       } finally {

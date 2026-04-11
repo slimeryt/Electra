@@ -151,7 +151,7 @@ export default function MainLayout() {
     ) : null;
 
   const shellBg = layoutPhoneNav
-    ? ({ background: '#1e1f22', backgroundImage: 'none' } as const)
+    ? ({ background: 'var(--mobile-shell-bg)', backgroundImage: 'none' } as const)
     : ({
         background: 'var(--bg-base)',
         backgroundImage: [
@@ -173,10 +173,6 @@ export default function MainLayout() {
     >
       {layoutPhoneNav && (
         <>
-          {/* Server rail always visible on phone (not in drawer); hidden on settings/discover via layoutPhoneNav */}
-          <div className="app-shell-rail-mobile-perm">
-            <ServerSidebar />
-          </div>
           {(leftOpen || membersOpen) && (
             <button
               type="button"
@@ -188,7 +184,12 @@ export default function MainLayout() {
           <div
             className={clsx('mobile-nav-drawer mobile-nav-drawer--left', leftOpen && 'is-open')}
           >
-            {channelColumn}
+            <div className="mobile-nav-drawer__left-inner">
+              <div className="app-shell-rail mobile-nav-drawer__rail">
+                <ServerSidebar />
+              </div>
+              {channelColumn}
+            </div>
           </div>
           <div
             className={clsx(
@@ -218,7 +219,7 @@ export default function MainLayout() {
       <div
         className="app-shell-main"
         style={{
-          background: layoutPhoneNav ? '#313338' : 'var(--bg-elevated)',
+          background: layoutPhoneNav ? 'var(--mobile-main-bg)' : 'var(--bg-elevated)',
           borderRadius: layoutPhoneNav || (isPhone && isFullscreen) ? 0 : 'var(--radius-xl)',
           boxShadow: layoutPhoneNav ? 'none' : 'var(--shadow-panel)',
         }}

@@ -143,8 +143,11 @@ export default function UserSettingsPage() {
     setTheme(t);
     try {
       const { data } = await client.patch('/users/me', { theme: t });
-      setUser(data.user || data);
-    } catch { /* non-critical */ }
+      const updated = data.user || data;
+      setUser(updated);
+    } catch (e) {
+      console.warn('Could not sync theme to account', e);
+    }
   };
 
   const handleSave = async () => {

@@ -11,7 +11,16 @@ const variantStyles: Record<string, CSSProperties> = {
   secondary: { background: 'var(--bg-overlay)', color: 'var(--text-primary)', border: '1px solid var(--border)' },
   ghost: { background: 'transparent', color: 'var(--text-secondary)' },
   danger: { background: 'var(--danger)', color: '#fff' },
-  icon: { background: 'transparent', color: 'var(--text-secondary)', padding: '6px' },
+  /** 44×44 minimum touch target (WCAG / mobile) */
+  icon: {
+    background: 'transparent',
+    color: 'var(--text-secondary)',
+    padding: 0,
+    width: 44,
+    height: 44,
+    minWidth: 44,
+    minHeight: 44,
+  },
 };
 
 const sizeStyles: Record<string, CSSProperties> = {
@@ -40,9 +49,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           opacity: disabled || isLoading ? 0.5 : 1,
           whiteSpace: 'nowrap',
           userSelect: 'none',
-          outline: 'none',
           ...variantStyles[variant],
-          ...sizeStyles[variant === 'icon' ? 'sm' : size],
+          ...(variant === 'icon' ? {} : sizeStyles[size]),
           ...style,
         }}
         onMouseEnter={e => {

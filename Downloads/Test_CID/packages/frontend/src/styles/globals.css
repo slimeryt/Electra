@@ -7,6 +7,26 @@
   padding: 0;
 }
 
+/* Keyboard focus (a11y) — no ring on mouse; inputs keep border-based focus from components */
+:where(button, a, [role='button'], [tabindex]:not([tabindex='-1'])):focus {
+  outline: none;
+}
+:where(button, a, [role='button'], [tabindex]:not([tabindex='-1'])):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 html, body, #root {
   height: 100%;
   width: 100%;
@@ -159,43 +179,10 @@ html, body, #root {
   flex: 1;
   min-width: 0;
   min-height: 0;
-  /* Persistent server rail (72px) + app bar */
-  margin-left: 72px;
-  width: calc(100% - 72px);
-  max-width: calc(100vw - 72px);
   padding-top: calc(52px + env(safe-area-inset-top, 0px));
   /* Space for fixed bottom user bar (Discord-style) */
   padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
   border-radius: 0;
-}
-
-/* Fixed server list: stays under app bar, full height (hidden when layoutPhoneNav is off, e.g. settings) */
-.app-shell-rail-mobile-perm {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 72px;
-  z-index: 198;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  padding-top: env(safe-area-inset-top, 0px);
-  background: #1e1f22;
-  border-right: 1px solid rgba(0, 0, 0, 0.22);
-  box-sizing: border-box;
-}
-
-.app-shell-rail-mobile-perm > div {
-  width: 100% !important;
-  max-width: 72px !important;
-  min-height: 0;
-  flex: 1;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 .app-shell--phone--voice .app-shell-main {
@@ -248,22 +235,22 @@ html, body, #root {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Channels / DM list only (server rail is fixed beside it) */
+/* Server rail + channels / DM list (slides in from the left) */
 .mobile-nav-drawer--left {
   position: fixed;
   top: calc(52px + env(safe-area-inset-top, 0px));
-  left: 72px;
+  left: 0;
   bottom: 0;
   z-index: 300;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  max-width: min(100vw - 72px - 12px, 320px);
-  width: min(100vw - 72px - 12px, 320px);
+  width: min(100vw - 12px, 392px);
+  max-width: calc(100vw - 12px);
   transform: translateX(-105%);
   transition: transform 0.26s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   box-shadow: 8px 0 24px rgba(0, 0, 0, 0.45);
-  background: #2b2d31;
+  background: var(--mobile-drawer-bg);
   border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
   overflow: hidden;
 }
@@ -272,19 +259,54 @@ html, body, #root {
   transform: translateX(0);
 }
 
+.mobile-nav-drawer__left-inner {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+}
+
+.mobile-nav-drawer__rail {
+  flex-shrink: 0;
+  width: 72px;
+  min-width: 72px;
+  display: flex;
+  flex-direction: column;
+  background: var(--mobile-rail-bg);
+  border-right: 1px solid var(--mobile-rail-border);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.mobile-nav-drawer__rail > div {
+  width: 100% !important;
+  max-width: 72px !important;
+  min-height: 0;
+  flex: 1;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .mobile-nav-drawer--left .app-shell-channels {
   flex: 1;
   min-width: 0;
   max-width: none;
-  width: 100%;
+  width: auto;
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: #2b2d31;
+  background: var(--mobile-drawer-bg);
 }
 
 .app-shell--phone .mobile-nav-drawer--left .app-shell-channels > div {
-  background: #2b2d31 !important;
+  background: var(--mobile-drawer-bg) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
   height: 100%;
@@ -301,7 +323,7 @@ html, body, #root {
   transform: translateX(105%);
   transition: transform 0.26s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   box-shadow: -8px 0 24px rgba(0, 0, 0, 0.45);
-  background: #2b2d31;
+  background: var(--mobile-drawer-bg);
 }
 
 .mobile-nav-drawer--right.is-open {
@@ -324,17 +346,17 @@ html, body, #root {
 .mobile-app-bar {
   position: fixed;
   top: 0;
-  left: 72px;
+  left: 0;
   right: 0;
-  width: calc(100% - 72px);
+  width: 100%;
   z-index: 210;
   display: flex;
   align-items: center;
   gap: 8px;
   min-height: calc(52px + env(safe-area-inset-top, 0px));
   padding: env(safe-area-inset-top, 0px) 10px 0 8px;
-  background: #313338;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.22);
+  background: var(--mobile-bar-bg);
+  border-bottom: 1px solid var(--mobile-bar-border);
   box-shadow: none;
 }
 
@@ -350,13 +372,13 @@ html, body, #root {
   border: none;
   border-radius: var(--radius-md);
   background: transparent;
-  color: #dbdee1;
+  color: var(--mobile-bar-icon);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-app-bar__icon-btn:active {
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--mobile-bar-text) 14%, transparent);
 }
 
 .mobile-app-bar__titles {
@@ -372,7 +394,7 @@ html, body, #root {
   font-weight: 600;
   font-size: 16px;
   letter-spacing: -0.01em;
-  color: #f2f3f5;
+  color: var(--mobile-bar-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -396,19 +418,19 @@ html, body, #root {
   flex-shrink: 0;
   font-weight: 700;
   font-size: 17px;
-  color: #6d6f78;
+  color: var(--mobile-bar-hash);
   line-height: 1;
 }
 
 .mobile-app-bar__ch-icon {
   flex-shrink: 0;
-  color: #6d6f78;
+  color: var(--mobile-bar-hash);
 }
 
 .mobile-app-bar__subtitle {
   font-size: 12px;
   font-weight: 500;
-  color: #949ba4;
+  color: var(--mobile-bar-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

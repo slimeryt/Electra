@@ -5,6 +5,7 @@ import { authApi } from '../api/auth';
 import { connectSocket, disconnectSocket } from '../socket/client';
 import { isElectron } from '../env';
 import { clearPersistedAuth, hydrateAuthFromDisk, persistAuthTokens } from '../lib/electronAuthPersist';
+import { clearNativeSession, persistNativeSession } from '../lib/nativePreferences';
 import { useThemeStore, type Theme } from './themeStore';
 import { upsertSavedAccount } from '../lib/savedAccounts';
 
@@ -36,6 +37,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
     if (isElectron) await persistAuthTokens(accessToken, refreshToken);
+    await persistNativeSession();
     upsertSavedAccount(user);
     set({ user, isAuthenticated: true });
     applyUserTheme(user);
@@ -47,6 +49,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
     if (isElectron) await persistAuthTokens(accessToken, refreshToken);
+    await persistNativeSession();
     upsertSavedAccount(user);
     set({ user, isAuthenticated: true });
     applyUserTheme(user);
@@ -59,6 +62,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     if (isElectron) await clearPersistedAuth();
+    await clearNativeSession();
     disconnectSocket();
     set({ user: null, isAuthenticated: false });
   },
@@ -82,12 +86,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       applyUserTheme(user);
       connectSocket(token);
       if (isElectron && rt) await persistAuthTokens(token, rt);
+      await persistNativeSession();
     } catch (e: unknown) {
       const status = axios.isAxiosError(e) ? e.response?.status : undefined;
       if (status === 401 || status === 403) {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         if (isElectron) void clearPersistedAuth();
+        void clearNativeSession();
       }
       set({ user: null, isAuthenticated: false });
     } finally {
