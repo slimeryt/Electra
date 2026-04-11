@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getBackendOrigin } from './backendOrigin';
 
 /** User-visible message for login/register failures (network vs API body). */
 export function formatAuthError(err: unknown): string {
@@ -9,7 +10,10 @@ export function formatAuthError(err: unknown): string {
       if (typeof msg === 'string' && msg.trim()) return msg;
     }
     if (!err.response) {
-      return "Can't reach the Electra server. Check your connection and that the API is running (Railway / your host).";
+      const origin = getBackendOrigin();
+      const tried = origin ? ` (${origin})` : '';
+      const code = typeof err.code === 'string' && err.code ? ` [${err.code}]` : '';
+      return `Can't reach the Electra server${tried}.${code} Check your connection and that the API is running (Railway / your host). For desktop dev, set VITE_BACKEND_URL in packages/frontend/.env.development.`;
     }
     const status = err.response.status;
     if (status >= 500) {

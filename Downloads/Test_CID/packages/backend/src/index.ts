@@ -10,7 +10,7 @@ import apiRouter from './routes/index';
 import { errorHandler } from './middleware/error';
 import { createSocketServer } from './socket/index';
 import { initBot } from './services/botService';
-import { parseCorsOriginList } from './config/corsOrigins';
+import { parseCorsOriginList, isDesktopOrOpaqueOrigin } from './config/corsOrigins';
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -22,7 +22,7 @@ app.use(cors({
   origin: allowedOrigins === '*'
     ? '*'
     : (origin: string | undefined, cb: (e: Error | null, ok?: boolean) => void) => {
-        if (!origin || allowedOrigins.includes(origin)) cb(null, true);
+        if (isDesktopOrOpaqueOrigin(origin) || (!!origin && allowedOrigins.includes(origin))) cb(null, true);
         else cb(new Error('Not allowed by CORS'));
       },
   credentials: allowedOrigins !== '*',

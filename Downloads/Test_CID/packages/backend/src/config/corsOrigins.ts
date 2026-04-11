@@ -8,6 +8,18 @@ export const NATIVE_APP_ORIGINS = [
   'capacitor://localhost',
 ] as const;
 
+/**
+ * Electron packaged Electra loads the UI from `app://` (see desktop main.ts).
+ * Browsers may send Origin: `null` for that case. Strict CORS lists on Railway
+ * would block login otherwise (Axios sees no response → "can't reach server").
+ */
+export function isDesktopOrOpaqueOrigin(origin: string | undefined): boolean {
+  if (origin === undefined || origin === '') return true;
+  if (origin === 'null') return true;
+  if (origin.startsWith('app://')) return true;
+  return false;
+}
+
 /** Comma-separated env list, or '*' — always merges native app origins unless wildcard. */
 export function parseCorsOriginList(): string[] | '*' {
   const raw = process.env.CORS_ORIGIN || '*';

@@ -5,7 +5,7 @@ import { registerPresenceHandlers } from './handlers/presence';
 import { registerChatHandlers } from './handlers/chat';
 import { registerDmHandlers } from './handlers/dm';
 import { registerVoiceHandlers } from './handlers/voice';
-import { parseCorsOriginList } from '../config/corsOrigins';
+import { parseCorsOriginList, isDesktopOrOpaqueOrigin } from '../config/corsOrigins';
 
 let _io: SocketServer | null = null;
 export function getIo(): SocketServer {
@@ -19,7 +19,15 @@ export function createSocketServer(httpServer: HttpServer) {
 
   const io = new SocketServer(httpServer, {
     cors: {
-      origin: isWildcard ? true : allowed,
+      origin: isWildcard
+        ? true
+        : (origin: string | undefined, callback: (err: Error | null, ok?: boolean) => void) => {
+            if (isDesktopOrOpaqueOrigin(origin) || (!!origin && allowed.includes(origin))) {
+              callback(null, true);
+            } else {
+              callback(new Error('Not allowed by CORS'));
+            }
+          },
       credentials: !isWildcard,
     },
   });
