@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { MessageList } from '../components/chat/MessageList';
 import { MessageInput } from '../components/chat/MessageInput';
 import { DMHeader } from '../components/dm/DMHeader';
+import { usePhoneLayout } from '../hooks/useMediaQuery';
 import { useDmMessages } from '../hooks/useMessages';
 import { dmsApi } from '../api/dms';
 import { useAuthStore } from '../store/authStore';
@@ -16,6 +17,7 @@ interface TypingUser {
 
 export default function DMPage() {
   const { dmId } = useParams<{ dmId: string }>();
+  const isPhone = usePhoneLayout();
   const { user } = useAuthStore();
   const { messages, isLoading, hasMore, loadMessages, loadMore } = useDmMessages(dmId!);
   const [dm, setDm] = useState<DirectMessage | null>(null);
@@ -66,7 +68,7 @@ export default function DMPage() {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <DMHeader dm={dm} currentUserId={user?.id} />
+      {!isPhone && <DMHeader dm={dm} currentUserId={user?.id} />}
       <MessageList
         messages={messages}
         isLoading={isLoading}

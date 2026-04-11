@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+import clsx from 'clsx';
 import { useNavigate } from 'react-router-dom';
 import { userTag } from '../../lib/userTag';
 import { Settings, Mic, MicOff, Headphones, Volume2, VolumeX, PhoneOff } from 'lucide-react';
@@ -7,9 +9,11 @@ import { useVoiceStore } from '../../store/voiceStore';
 import { useVoiceChannel } from '../../webrtc/hooks/useVoiceChannel';
 import { useChannelStore } from '../../store/channelStore';
 import { useServerStore } from '../../store/serverStore';
+import { usePhoneLayout } from '../../hooks/useMediaQuery';
 
 export function UserPanel() {
   const { user } = useAuthStore();
+  const isPhone = usePhoneLayout();
   const navigate = useNavigate();
   const { activeServerId } = useServerStore();
   const { channelsByServer } = useChannelStore();
@@ -28,30 +32,57 @@ export function UserPanel() {
     else navigate('/app');
   };
 
+  const dockStyle: CSSProperties = isPhone
+    ? {
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        width: '100%',
+        maxWidth: 'none',
+        zIndex: 205,
+        boxSizing: 'border-box',
+        background: '#232428',
+        border: 'none',
+        borderTop: '1px solid rgba(0, 0, 0, 0.35)',
+        borderRadius: 0,
+        boxShadow: 'none',
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none',
+        padding: inVoice
+          ? '10px 12px calc(8px + env(safe-area-inset-bottom, 0px))'
+          : '8px 12px calc(8px + env(safe-area-inset-bottom, 0px))',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: inVoice ? 10 : 0,
+        userSelect: 'none',
+        transition: 'padding 180ms ease',
+      }
+    : {
+        position: 'fixed',
+        bottom: 12,
+        left: 12,
+        width: inVoice ? 320 : 306,
+        zIndex: 200,
+        boxSizing: 'border-box',
+        background:
+          'linear-gradient(var(--bg-base), var(--bg-base)) padding-box, var(--gradient-brand) border-box',
+        border: '1px solid transparent',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow:
+          '0 8px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04), 0 0 32px rgba(88,101,242,0.08)',
+        backdropFilter: 'blur(28px)',
+        WebkitBackdropFilter: 'blur(28px)',
+        padding: inVoice ? '10px 10px 8px' : '8px 10px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: inVoice ? 10 : 0,
+        userSelect: 'none',
+        transition: 'width 180ms ease, padding 180ms ease',
+      };
+
   return (
-    <div
-      className="user-panel-dock"
-      style={{
-      position: 'fixed',
-      bottom: 12,
-      left: 12,
-      width: inVoice ? 320 : 306,
-      zIndex: 200,
-      boxSizing: 'border-box',
-      background: 'linear-gradient(var(--bg-base), var(--bg-base)) padding-box, var(--gradient-brand) border-box',
-      border: '1px solid transparent',
-      borderRadius: 'var(--radius-lg)',
-      boxShadow: '0 8px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04), 0 0 32px rgba(88,101,242,0.08)',
-      backdropFilter: 'blur(28px)',
-      WebkitBackdropFilter: 'blur(28px)',
-      padding: inVoice ? '10px 10px 8px' : '8px 10px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: inVoice ? 10 : 0,
-      userSelect: 'none',
-      transition: 'width 180ms ease, padding 180ms ease',
-    }}
-    >
+    <div className={clsx('user-panel-dock', isPhone && 'user-panel-dock--phone')} style={dockStyle}>
       {inVoice && (
         <div style={{
           padding: '8px 10px',
@@ -133,7 +164,7 @@ export function UserPanel() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+        <div className="user-panel-actions" style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
           <PanelBtn
             title={inVoice ? (isMuted ? 'Unmute' : 'Mute') : 'Mute'}
             active={inVoice && isMuted}

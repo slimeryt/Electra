@@ -14,6 +14,7 @@ import { Spinner } from '../ui/Spinner';
 import { Avatar } from '../ui/Avatar';
 import { serversApi } from '../../api/servers';
 import { useReplyStore } from '../../store/replyStore';
+import { usePhoneLayout } from '../../hooks/useMediaQuery';
 
 interface PendingFile {
   file: File;
@@ -56,6 +57,7 @@ export function MessageInput({
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { replyTo, close: closeReply } = useReplyStore();
+  const isPhone = usePhoneLayout();
 
   // Fetch members once when serverId is available
   useEffect(() => {
@@ -176,8 +178,26 @@ export function MessageInput({
   const hasUploading = pendingFiles.some(f => f.uploading);
   const canSend = !hasUploading && (content.trim().length > 0 || pendingFiles.some(f => f.fileId));
 
+  const barBackground = isDragOver
+    ? 'rgba(88,101,242,0.10)'
+    : isPhone
+      ? '#383a40'
+      : 'var(--bg-input)';
+  const barBorder = isDragOver
+    ? 'var(--accent)'
+    : isPhone
+      ? 'rgba(0,0,0,0.28)'
+      : 'var(--border-strong)';
+  const barRadius = isPhone ? 8 : undefined;
+  const barShadow = isDragOver
+    ? '0 0 0 3px rgba(88,101,242,0.15)'
+    : isPhone
+      ? 'none'
+      : 'inset 0 1px 3px rgba(0,0,0,0.3)';
+
   return (
     <div
+      className="message-input-wrap"
       style={{ padding: '0 16px 16px', position: 'relative' }}
       onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
       onDragLeave={e => { e.preventDefault(); setIsDragOver(false); }}
@@ -261,14 +281,20 @@ export function MessageInput({
       )}
 
       {/* Input bar */}
-      <div style={{
-        display: 'flex', alignItems: 'flex-end', gap: 8,
-        background: isDragOver ? 'rgba(88,101,242,0.10)' : 'var(--bg-input)',
-        border: `1px solid ${isDragOver ? 'var(--accent)' : 'var(--border-strong)'}`,
-        borderRadius: 'var(--radius-lg)', padding: '4px 8px',
-        transition: 'border-color var(--transition), background var(--transition)',
-        boxShadow: isDragOver ? '0 0 0 3px rgba(88,101,242,0.15)' : 'inset 0 1px 3px rgba(0,0,0,0.3)',
-      }}>
+      <div
+        className="message-input-bar"
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 8,
+          background: barBackground,
+          border: `1px solid ${barBorder}`,
+          borderRadius: barRadius !== undefined ? barRadius : 'var(--radius-lg)',
+          padding: '4px 8px',
+          transition: 'border-color var(--transition), background var(--transition)',
+          boxShadow: barShadow,
+        }}
+      >
         <button onClick={() => fileInputRef.current?.click()} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 22, padding: '4px 6px', borderRadius: 'var(--radius-sm)', flexShrink: 0, transition: 'var(--transition)', alignSelf: 'flex-end', marginBottom: 4, lineHeight: 1 }}
           onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-hover)'; }}
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none'; }}

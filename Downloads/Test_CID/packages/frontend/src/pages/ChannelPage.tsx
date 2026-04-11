@@ -5,6 +5,7 @@ import { MessageInput } from '../components/chat/MessageInput';
 import { useMessages } from '../hooks/useMessages';
 import { useChannelStore } from '../store/channelStore';
 import { getSocket } from '../socket/client';
+import { usePhoneLayout } from '../hooks/useMediaQuery';
 
 interface TypingUser {
   user_id: string;
@@ -13,6 +14,7 @@ interface TypingUser {
 
 export default function ChannelPage() {
   const { channelId, serverId } = useParams<{ channelId: string; serverId: string }>();
+  const isPhone = usePhoneLayout();
   const { getChannels } = useChannelStore();
   const { messages, isLoading, hasMore, loadMessages, loadMore } = useMessages(channelId!);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
@@ -69,34 +71,36 @@ export default function ChannelPage() {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Channel header */}
-      <div style={{
-        padding: '0 16px',
-        height: 49,
-        borderBottom: '1px solid var(--border)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        flexShrink: 0,
-      }}>
-        <span style={{ fontSize: 18, color: 'var(--text-muted)', fontWeight: 700, lineHeight: 1 }}>
-          #
-        </span>
-        <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>
-          {channel?.name || channelId}
-        </span>
-        {(channel as any)?.topic && (
-          <>
-            <div style={{ width: 1, height: 20, background: 'var(--border)', flexShrink: 0 }} />
-            <span style={{
-              fontSize: 13, color: 'var(--text-muted)',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
-              {(channel as any).topic}
-            </span>
-          </>
-        )}
-      </div>
+      {/* Channel header (hidden on phone — MobileAppBar shows channel + server) */}
+      {!isPhone && (
+        <div style={{
+          padding: '0 16px',
+          height: 49,
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 18, color: 'var(--text-muted)', fontWeight: 700, lineHeight: 1 }}>
+            #
+          </span>
+          <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>
+            {channel?.name || channelId}
+          </span>
+          {(channel as any)?.topic && (
+            <>
+              <div style={{ width: 1, height: 20, background: 'var(--border)', flexShrink: 0 }} />
+              <span style={{
+                fontSize: 13, color: 'var(--text-muted)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {(channel as any).topic}
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Messages */}
       <MessageList

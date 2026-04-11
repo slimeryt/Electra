@@ -10,6 +10,7 @@ import { UserPanel } from '../components/layout/UserPanel';
 import { MobileAppBar } from '../components/layout/MobileAppBar';
 import { useServerStore } from '../store/serverStore';
 import { useFriendStore } from '../store/friendStore';
+import { useVoiceStore } from '../store/voiceStore';
 import { usePhoneLayout } from '../hooks/useMediaQuery';
 import { useMobileNavStore } from '../store/mobileNavStore';
 
@@ -24,6 +25,7 @@ export default function MainLayout() {
 
   const pendingCount = requests.filter((r) => r.direction === 'incoming').length;
   const isFriendsActive = location.pathname === '/app/friends';
+  const inVoice = useVoiceStore((s) => !!s.activeChannelId);
 
   const isFullscreen =
     location.pathname === '/app/settings' || location.pathname.startsWith('/app/discover');
@@ -148,20 +150,23 @@ export default function MainLayout() {
       <div className="app-shell-channels">{dmSidebarCard}</div>
     ) : null;
 
-  const shellBg = {
-    background: 'var(--bg-base)',
-    backgroundImage: [
-      'radial-gradient(ellipse 80% 60% at 10% 70%, rgba(88,101,242,0.09) 0%, transparent 55%)',
-      'radial-gradient(ellipse 60% 45% at 90% 15%, rgba(124,58,237,0.07) 0%, transparent 50%)',
-      'radial-gradient(ellipse 50% 60% at 50% 110%, rgba(88,101,242,0.07) 0%, transparent 60%)',
-    ].join(', '),
-  } as const;
+  const shellBg = layoutPhoneNav
+    ? ({ background: '#1e1f22', backgroundImage: 'none' } as const)
+    : ({
+        background: 'var(--bg-base)',
+        backgroundImage: [
+          'radial-gradient(ellipse 80% 60% at 10% 70%, rgba(88,101,242,0.09) 0%, transparent 55%)',
+          'radial-gradient(ellipse 60% 45% at 90% 15%, rgba(124,58,237,0.07) 0%, transparent 50%)',
+          'radial-gradient(ellipse 50% 60% at 50% 110%, rgba(88,101,242,0.07) 0%, transparent 60%)',
+        ].join(', '),
+      } as const);
 
   return (
     <div
       className={clsx(
         'app-shell',
         layoutPhoneNav && 'app-shell--phone',
+        layoutPhoneNav && inVoice && 'app-shell--phone--voice',
         isPhone && isFullscreen && 'app-shell--phone-fs',
       )}
       style={shellBg}
@@ -212,7 +217,7 @@ export default function MainLayout() {
       <div
         className="app-shell-main"
         style={{
-          background: 'var(--bg-elevated)',
+          background: layoutPhoneNav ? '#313338' : 'var(--bg-elevated)',
           borderRadius: layoutPhoneNav || (isPhone && isFullscreen) ? 0 : 'var(--radius-lg)',
           boxShadow: layoutPhoneNav ? 'none' : 'var(--shadow-panel)',
         }}

@@ -149,7 +149,19 @@ html, body, #root {
   min-width: 0;
   min-height: 0;
   padding-top: calc(52px + env(safe-area-inset-top, 0px));
+  /* Space for fixed bottom user bar (Discord-style) */
+  padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
   border-radius: 0;
+}
+
+.app-shell--phone--voice .app-shell-main {
+  padding-bottom: calc(196px + env(safe-area-inset-bottom, 0px));
+}
+
+.app-shell--phone .message-input-wrap {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  padding-bottom: 12px !important;
 }
 
 .app-shell--phone-fs {
@@ -189,12 +201,12 @@ html, body, #root {
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  max-width: min(92vw, 360px);
-  width: min(92vw, 360px);
+  max-width: min(100vw - 44px, 340px);
+  width: min(100vw - 44px, 340px);
   transform: translateX(-105%);
-  transition: transform 0.22s ease;
-  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.4);
-  background: var(--bg-base);
+  transition: transform 0.26s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.45);
+  background: #1e1f22;
 }
 
 .mobile-nav-drawer--left.is-open {
@@ -229,6 +241,23 @@ html, body, #root {
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  background: #2b2d31;
+  border-left: 1px solid rgba(0, 0, 0, 0.22);
+}
+
+/* Server + channel cards fill drawer (Discord surfaces) */
+.app-shell--phone .mobile-nav-drawer--left .app-shell-rail > div:first-child {
+  width: 100% !important;
+  max-width: 72px;
+  background: #1e1f22 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.app-shell--phone .mobile-nav-drawer--left .app-shell-channels > div {
+  background: #2b2d31 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 .mobile-nav-drawer--right {
@@ -237,12 +266,12 @@ html, body, #root {
   right: 0;
   bottom: 0;
   z-index: 300;
-  width: min(90vw, 300px);
+  width: min(92vw, 320px);
   max-width: 100%;
   transform: translateX(105%);
-  transition: transform 0.22s ease;
-  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
-  background: var(--bg-elevated);
+  transition: transform 0.26s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.45);
+  background: #2b2d31;
 }
 
 .mobile-nav-drawer--right.is-open {
@@ -267,15 +296,15 @@ html, body, #root {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 200;
+  z-index: 210;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-height: calc(52px + env(safe-area-inset-top, 0px));
-  padding: env(safe-area-inset-top, 0px) 12px 0 10px;
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  padding: env(safe-area-inset-top, 0px) 10px 0 8px;
+  background: #313338;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.22);
+  box-shadow: none;
 }
 
 .mobile-app-bar__icon-btn {
@@ -290,13 +319,13 @@ html, body, #root {
   border: none;
   border-radius: var(--radius-md);
   background: transparent;
-  color: var(--text-primary);
+  color: #dbdee1;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-app-bar__icon-btn:active {
-  background: var(--bg-hover);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .mobile-app-bar__titles {
@@ -309,18 +338,46 @@ html, body, #root {
 }
 
 .mobile-app-bar__title {
-  font-weight: 700;
-  font-size: 15px;
-  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  color: #f2f3f5;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.mobile-app-bar__title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mobile-app-bar__title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-app-bar__hash {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 17px;
+  color: #6d6f78;
+  line-height: 1;
+}
+
+.mobile-app-bar__ch-icon {
+  flex-shrink: 0;
+  color: #6d6f78;
+}
+
 .mobile-app-bar__subtitle {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
-  color: var(--text-muted);
+  color: #949ba4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -338,11 +395,16 @@ html, body, #root {
 }
 
 @media (max-width: 480px) {
-  .user-panel-dock {
+  .user-panel-dock:not(.user-panel-dock--phone) {
     left: 8px !important;
     right: 8px !important;
     width: auto !important;
   }
+}
+
+.app-shell--phone .user-panel-dock--phone .user-panel-actions button[type='button'] {
+  min-width: 40px;
+  min-height: 40px;
 }
 
 /* Roles editor: stack on small screens */
