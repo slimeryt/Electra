@@ -121,6 +121,17 @@ CREATE TABLE IF NOT EXISTS friendships (
 CREATE INDEX IF NOT EXISTS idx_friendships_addressee ON friendships(addressee_id, status);
 CREATE INDEX IF NOT EXISTS idx_friendships_requester ON friendships(requester_id, status);
 
+-- ─── Server Categories ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS server_categories (
+  id         TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  server_id  TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  name       TEXT NOT NULL,
+  position   INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  UNIQUE(server_id, name)
+);
+CREATE INDEX IF NOT EXISTS idx_server_categories_server ON server_categories(server_id, position);
+
 -- ─── Server Roles ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS server_roles (
   id          TEXT NOT NULL PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),

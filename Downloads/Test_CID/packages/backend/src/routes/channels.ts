@@ -1,13 +1,40 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import * as channelService from '../services/channelService';
+import * as categoryService from '../services/categoryService';
 import * as messageService from '../services/messageService';
 import { getIo } from '../socket/index';
 
 const router = Router();
 router.use(requireAuth);
 
-// Channels per server
+// ─── Categories ──────────────────────────────────────────────────────────────
+router.get('/servers/:serverId/categories', (req: AuthRequest, res, next) => {
+  try { res.json(categoryService.getCategories(req.params.serverId)); } catch (e) { next(e); }
+});
+
+router.post('/servers/:serverId/categories', (req: AuthRequest, res, next) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+    res.status(201).json(categoryService.createCategory(req.params.serverId, req.userId!, name));
+  } catch (e) { next(e); }
+});
+
+router.patch('/servers/:serverId/categories/:catId', (req: AuthRequest, res, next) => {
+  try {
+    res.json(categoryService.updateCategory(req.params.serverId, req.params.catId, req.userId!, req.body));
+  } catch (e) { next(e); }
+});
+
+router.delete('/servers/:serverId/categories/:catId', (req: AuthRequest, res, next) => {
+  try {
+    categoryService.deleteCategory(req.params.serverId, req.params.catId, req.userId!);
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// ─── Channels ─────────────────────────────────────────────────────────────────
 router.get('/servers/:serverId/channels', (req: AuthRequest, res, next) => {
   try {
     res.json(channelService.getChannels(req.params.serverId));
