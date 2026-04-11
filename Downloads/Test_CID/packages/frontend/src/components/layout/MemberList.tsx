@@ -70,6 +70,14 @@ export function MemberList({ serverId }: { serverId: string }) {
 
   const rolePickerMember = members.find(m => m.id === rolePickerMemberId);
 
+  // Highest-priority custom role (by position) — used for name color
+  const topRole = (m: ServerMemberWithRoles) =>
+    (m.roles || []).filter(r => !r.is_default).sort((a, b) => b.position - a.position)[0];
+
+  // Highest hoisted role — used for group label
+  const hoistRole = (m: ServerMemberWithRoles) =>
+    (m.roles || []).filter(r => !r.is_default && r.hoist === 1).sort((a, b) => b.position - a.position)[0];
+
   const handleMemberClick = (member: ServerMemberWithRoles, el: HTMLDivElement) => {
     const previewData: PreviewUser = {
       id: member.id,
@@ -78,6 +86,7 @@ export function MemberList({ serverId }: { serverId: string }) {
       avatar_url: member.avatar_url,
       status: member.status,
       role: (member as any).role,
+      roles: (member.roles || []).filter(r => !r.is_default),
     };
     openPreview(previewData, el);
   };
@@ -165,14 +174,31 @@ export function MemberList({ serverId }: { serverId: string }) {
     }
   };
 
-  const groups = members.reduce<Record<string, ServerMemberWithRoles[]>>((acc, m) => {
-    const key = m.status === 'offline' ? 'Offline' : 'Online';
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(m);
-    return acc;
-  }, {});
+  // Build groups: hoisted roles first (sorted by position desc), then Online, then Offline
+  const hoistRoleMap = new Map<string, { role: ServerRole; members: ServerMemberWithRoles[] }>();
+  const onlineMembers: ServerMemberWithRoles[] = [];
+  const offlineMembers: ServerMemberWithRoles[] = [];
 
-  const orderedKeys = ['Online', 'Offline'].filter(k => groups[k]?.length);
+  for (const m of members) {
+    const hr = hoistRole(m);
+    if (hr) {
+      if (!hoistRoleMap.has(hr.id)) hoistRoleMap.set(hr.id, { role: hr, members: [] });
+      hoistRoleMap.get(hr.id)!.members.push(m);
+    } else if (m.status === 'offline') {
+      offlineMembers.push(m);
+    } else {
+      onlineMembers.push(m);
+    }
+  }
+
+  const hoistGroups = Array.from(hoistRoleMap.values()).sort((a, b) => b.role.position - a.role.position);
+
+  type Group = { label: string; color?: string; members: ServerMemberWithRoles[] };
+  const allGroups: Group[] = [
+    ...hoistGroups.map(g => ({ label: g.role.name, color: g.role.color, members: g.members })),
+    ...(onlineMembers.length ? [{ label: 'Online', members: onlineMembers }] : []),
+    ...(offlineMembers.length ? [{ label: 'Offline', members: offlineMembers }] : []),
+  ];
 
   return (
     <div style={{
@@ -193,70 +219,56 @@ export function MemberList({ serverId }: { serverId: string }) {
         Members
       </div>
 
-      {orderedKeys.map(status => (
-        <div key={status} style={{ marginBottom: 18 }}>
+      {allGroups.map(group => (
+        <div key={group.label} style={{ marginBottom: 18 }}>
           <div style={{
             padding: '0 8px 5px', fontSize: 10.5, fontWeight: 700,
             letterSpacing: '0.07em', textTransform: 'uppercase',
-            color: 'var(--text-muted)',
+            color: group.color || 'var(--text-muted)',
           }}>
-            {status} — {groups[status].length}
+            {group.label} — {group.members.length}
           </div>
 
-          {groups[status].map(member => (
-            <div
-              key={member.id}
-              ref={el => { if (el) rowRefs.current.set(member.id, el); }}
-              onClick={() => {
-                const el = rowRefs.current.get(member.id);
-                if (el) handleMemberClick(member, el);
-              }}
-              onContextMenu={e => handleContextMenu(e, member)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 9,
-                padding: '5px 8px', margin: '1px 0',
-                borderRadius: 'var(--radius-md)',
-                cursor: 'pointer', transition: 'all var(--transition)',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'var(--bg-hover)';
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.25)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <Avatar user={member} size={32} showStatus />
-              <div style={{ overflow: 'hidden', flex: 1 }}>
-                <div style={{
-                  fontSize: 13, fontWeight: 500,
-                  color: member.status === 'offline' ? 'var(--text-muted)' : 'var(--text-primary)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
-                  {member.display_name || member.username}
-                </div>
-                {member.roles && member.roles.length > 0 && !member.roles.every(r => r.is_default) && (
-                  <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 2 }}>
-                    {member.roles.filter(r => !r.is_default).slice(0, 2).map(r => (
-                      <span
-                        key={r.id}
-                        style={{
-                          fontSize: 10, padding: '1px 5px', borderRadius: 3,
-                          background: `${r.color}22`,
-                          color: r.color || 'var(--accent)',
-                          border: `1px solid ${r.color}44`,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {r.name}
-                      </span>
-                    ))}
+          {group.members.map(member => {
+            const nameColor = topRole(member)?.color;
+            const isOffline = member.status === 'offline';
+            return (
+              <div
+                key={member.id}
+                ref={el => { if (el) rowRefs.current.set(member.id, el); }}
+                onClick={() => {
+                  const el = rowRefs.current.get(member.id);
+                  if (el) handleMemberClick(member, el);
+                }}
+                onContextMenu={e => handleContextMenu(e, member)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 9,
+                  padding: '5px 8px', margin: '1px 0',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer', transition: 'all var(--transition)',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'var(--bg-hover)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.25)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <Avatar user={member} size={32} showStatus />
+                <div style={{ overflow: 'hidden', flex: 1 }}>
+                  <div style={{
+                    fontSize: 13, fontWeight: 500,
+                    color: isOffline ? 'var(--text-muted)' : (nameColor || 'var(--text-primary)'),
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {member.display_name || member.username}
                   </div>
-                )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ))}
 

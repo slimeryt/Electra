@@ -5,7 +5,7 @@ import { Button } from './Button';
 import { ProfileCardBody } from './ProfileCard';
 import { dmsApi } from '../../api/dms';
 import { usersApi } from '../../api/users';
-import type { User } from '../../types/models';
+import type { User, ServerRole } from '../../types/models';
 
 export interface PreviewUser {
   id: string;
@@ -15,6 +15,7 @@ export interface PreviewUser {
   status?: string;
   created_at?: number;
   role?: string;
+  roles?: ServerRole[];
 }
 
 interface UserPreviewProps {
@@ -108,6 +109,27 @@ export function UserPreview({ user, anchorRef, onClose, currentUserId }: UserPre
         loading={loading}
         onClose={onClose}
       />
+      {!loading && user.roles && user.roles.length > 0 && (
+        <div style={{ padding: '0 16px 10px' }}>
+          <div style={{ height: 1, background: 'var(--border)', marginBottom: 8 }} />
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 6 }}>
+            Roles
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {user.roles.map(r => (
+              <span key={r.id} style={{
+                fontSize: 11, padding: '2px 8px', borderRadius: 99,
+                background: `${r.color}22`,
+                border: `1px solid ${r.color}55`,
+                color: r.color,
+                fontWeight: 600,
+              }}>
+                {r.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       {!loading && profile && user.id !== currentUserId && (
         <div style={{ padding: '0 16px 14px' }}>
           <Button size="sm" onClick={handleDm} isLoading={dmLoading} style={{ width: '100%' }}>
