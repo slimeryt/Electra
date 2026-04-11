@@ -48,8 +48,14 @@ app.use(errorHandler);
 runMigrations();
 initBot();
 const port = parseInt(process.env.PORT || '3001', 10);
+const host = process.env.HOST || '0.0.0.0';
 createSocketServer(httpServer);
 
-httpServer.listen(port, () => {
-  console.log(`Cord server running on http://localhost:${port}`);
+httpServer.listen(port, host, () => {
+  console.log(`Electra API listening on http://${host}:${port}`);
+});
+
+httpServer.on('error', (err) => {
+  console.error('[http] server error', err);
+  process.exit(1);
 });
