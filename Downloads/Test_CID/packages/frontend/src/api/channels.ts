@@ -42,4 +42,18 @@ export const channelsApi = {
 
   deleteMessage: (messageId: string) =>
     client.delete(`/messages/${messageId}`).then(r => r.data),
+
+  markChannelRead: (channelId: string) =>
+    client.post<{ ok: boolean; last_read_at: number }>(`/channels/${channelId}/mark-read`).then(r => r.data),
+
+  reportMessage: (channelId: string, messageId: string, reason?: string) =>
+    client
+      .post<{ ok: boolean; id: string }>(`/channels/${channelId}/messages/${messageId}/report`, { reason })
+      .then(r => r.data),
+
+  updateForumPost: (channelId: string, postId: string, data: { title?: string; body?: string | null }) =>
+    client.patch<ForumPost>(`/channels/${channelId}/forum/posts/${postId}`, data).then(r => r.data),
+
+  deleteForumPost: (channelId: string, postId: string) =>
+    client.delete(`/channels/${channelId}/forum/posts/${postId}`).then(r => r.data),
 };

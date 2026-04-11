@@ -46,7 +46,13 @@ function enrichMessage(msg: Message) {
 
 const MAX_MESSAGES_PAGE = 100;
 
-export function getMessages(channelId: string, before?: string, limit = 50, forumPostId?: string | null) {
+export function getMessages(
+  channelId: string,
+  before?: string,
+  limit = 50,
+  forumPostId?: string | null,
+  viewerUserId?: string | null,
+) {
   const pageSize = Math.min(Math.max(1, limit), MAX_MESSAGES_PAGE);
 
   let query = `
@@ -60,6 +66,13 @@ export function getMessages(channelId: string, before?: string, limit = 50, foru
     params.push(forumPostId);
   } else {
     query += ' AND m.forum_post_id IS NULL';
+  }
+
+  if (viewerUserId) {
+    query += ` AND (m.author_id IS NULL OR m.author_id NOT IN (
+      SELECT addressee_id FROM friendships WHERE requester_id = ? AND status = 'blocked'
+    ))`;
+    params.push(viewerUserId);
   }
 
   if (before != null && before !== '') {

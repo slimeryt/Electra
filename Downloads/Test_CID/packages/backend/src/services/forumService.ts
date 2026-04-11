@@ -50,8 +50,11 @@ export function listPosts(
   };
   assertMember(ch.server_id, userId);
 
-  let query = 'SELECT * FROM forum_posts WHERE channel_id = ?';
-  const params: unknown[] = [channelId];
+  let query = `SELECT * FROM forum_posts WHERE channel_id = ?
+    AND author_id NOT IN (
+      SELECT addressee_id FROM friendships WHERE requester_id = ? AND status = 'blocked'
+    )`;
+  const params: unknown[] = [channelId, userId];
 
   if (before != null && before !== '') {
     const ref = db
@@ -82,8 +85,14 @@ export function getPostInChannel(channelId: string, postId: string, userId: stri
   assertMember(ch.server_id, userId);
 
   const row = db
-    .prepare('SELECT * FROM forum_posts WHERE id = ? AND channel_id = ?')
-    .get(postId, channelId) as ForumPostRow | undefined;
+    .prepare(
+      `SELECT fp.* FROM forum_posts fp
+       WHERE fp.id = ? AND fp.channel_id = ?
+       AND fp.author_id NOT IN (
+         SELECT addressee_id FROM friendships WHERE requester_id = ? AND status = 'blocked'
+       )`,
+    )
+    .get(postId, channelId, userId) as ForumPostRow | undefined;
   if (!row) throw httpError('Post not found', 404, 'FORUM_POST_NOT_FOUND');
   return enrichPost(row);
 }
@@ -121,4 +130,74 @@ export function createPost(channelId: string, userId: string, title: string, bod
 export function assertPostInChannel(postId: string, channelId: string) {
   const row = db.prepare('SELECT id FROM forum_posts WHERE id = ? AND channel_id = ?').get(postId, channelId);
   if (!row) throw httpError('Post not found in channel', 404, 'FORUM_POST_NOT_FOUND');
+}
+
+function isServerAdminOrOwner(channelId: string, userId: string): boolean {
+  const row = db
+    .prepare(
+      `SELECT sm.role FROM server_members sm
+       JOIN channels c ON c.server_id = sm.server_id
+       WHERE c.id = ? AND sm.user_id = ?`,
+    )
+    .get(channelId, userId) as { role: string } | undefined;
+  return row?.role === 'owner' || row?.role === 'admin';
+}
+
+export function updatePostInChannel(
+  channelId: string,
+  postId: string,
+  userId: string,
+  title?: string,
+  body?: string | null,
+) {
+  const row = db
+    .prepare('SELECT * FROM forum_posts WHERE id = ? AND channel_id = ?')
+    .get(postId, channelId) as ForumPostRow | undefined;
+  if (!row) throw httpError('Post not found', 404, 'FORUM_POST_NOT_FOUND');
+
+  const ch = db.prepare('SELECT server_id FROM channels WHERE id = ?').get(channelId) as { server_id: string };
+  assertMember(ch.server_id, userId);
+
+  if (row.author_id !== userId && !isServerAdminOrOwner(channelId, userId)) {
+    throw httpError('Forbidden', 403, 'FORBIDDEN');
+  }
+
+  const t = title !== undefined ? title.trim() : row.title;
+  if (!t) throw httpError('Title required', 400, 'TITLE_REQUIRED');
+  if (t.length > MAX_FORUM_TITLE_LENGTH) {
+    throw httpError(`Title must be at most ${MAX_FORUM_TITLE_LENGTH} characters`, 400, 'INPUT_TOO_LONG');
+  }
+
+  let b = row.body;
+  if (body !== undefined) {
+    const trimmed = (body ?? '').trim();
+    b = trimmed || null;
+  }
+  if (b && b.length > MAX_FORUM_BODY_LENGTH) {
+    throw httpError(`Body must be at most ${MAX_FORUM_BODY_LENGTH} characters`, 400, 'INPUT_TOO_LONG');
+  }
+
+  const updated = db
+    .prepare(
+      'UPDATE forum_posts SET title = ?, body = ?, updated_at = unixepoch() WHERE id = ? RETURNING *',
+    )
+    .get(t, b, postId) as ForumPostRow;
+  return enrichPost(updated);
+}
+
+export function deletePostInChannel(channelId: string, postId: string, userId: string) {
+  const row = db
+    .prepare('SELECT author_id FROM forum_posts WHERE id = ? AND channel_id = ?')
+    .get(postId, channelId) as { author_id: string } | undefined;
+  if (!row) throw httpError('Post not found', 404, 'FORUM_POST_NOT_FOUND');
+
+  const ch = db.prepare('SELECT server_id FROM channels WHERE id = ?').get(channelId) as { server_id: string };
+  assertMember(ch.server_id, userId);
+
+  if (row.author_id !== userId && !isServerAdminOrOwner(channelId, userId)) {
+    throw httpError('Forbidden', 403, 'FORBIDDEN');
+  }
+
+  db.prepare('DELETE FROM forum_posts WHERE id = ?').run(postId);
+  return { ok: true };
 }

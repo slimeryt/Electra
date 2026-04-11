@@ -310,7 +310,9 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
     e.preventDefault();
     e.stopPropagation();
     show([
-      { label: 'Mark as Read', icon: <CheckCheck size={14} />, onClick: () => {} },
+      { label: 'Mark as Read', icon: <CheckCheck size={14} />, onClick: async () => {
+        try { await channelsApi.markChannelRead(channel.id); } catch { /* ignore */ }
+      }},
       { divider: true, label: '', onClick: () => {} },
       { label: 'Copy Channel ID', icon: <Clipboard size={14} />, onClick: () => navigator.clipboard.writeText(channel.id) },
       ...(isAdminOrOwner ? [

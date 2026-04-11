@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, MessagesSquare } from 'lucide-react';
+import { Plus, MessagesSquare, Pencil, Trash2 } from 'lucide-react';
 import { getSocket } from '../socket/client';
 import { channelsApi } from '../api/channels';
 import type { ForumPost } from '../types/models';
 import { useChannelStore } from '../store/channelStore';
+import { useAuthStore } from '../store/authStore';
+import { useContextMenu } from '../context/ContextMenuContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
@@ -18,6 +20,8 @@ export default function ForumChannelPage() {
   const isPhone = usePhoneLayout();
   const { getChannels, setActiveChannel } = useChannelStore();
   const channel = getChannels(serverId || '').find((c) => c.id === channelId);
+  const { user } = useAuthStore();
+  const { show } = useContextMenu();
 
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +30,11 @@ export default function ForumChannelPage() {
   const [body, setBody] = useState('');
   const [createErr, setCreateErr] = useState('');
   const [creating, setCreating] = useState(false);
+  const [editPost, setEditPost] = useState<ForumPost | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editBody, setEditBody] = useState('');
+  const [editErr, setEditErr] = useState('');
+  const [editBusy, setEditBusy] = useState(false);
 
   useEffect(() => {
     if (channelId) setActiveChannel(channelId);
@@ -59,15 +68,65 @@ export default function ForumChannelPage() {
         return [...prev, payload.post];
       });
     };
+    const onUpdate = (payload: { channel_id: string; post: ForumPost }) => {
+      if (payload.channel_id !== channelId) return;
+      setPosts((prev) => prev.map((p) => (p.id === payload.post.id ? payload.post : p)));
+    };
+    const onDelete = (payload: { channel_id: string; post_id: string }) => {
+      if (payload.channel_id !== channelId) return;
+      setPosts((prev) => prev.filter((p) => p.id !== payload.post_id));
+    };
     socket.on('forum_post_create', onCreate);
+    socket.on('forum_post_update', onUpdate);
+    socket.on('forum_post_delete', onDelete);
     return () => {
       socket.off('forum_post_create', onCreate);
+      socket.off('forum_post_update', onUpdate);
+      socket.off('forum_post_delete', onDelete);
       socket.emit('leave_channel', { channel_id: channelId });
     };
   }, [channelId]);
 
   const openPost = (postId: string) => {
     navigate(`/app/servers/${serverId}/channels/${channelId}/posts/${postId}`);
+  };
+
+  const openEdit = (p: ForumPost) => {
+    setEditPost(p);
+    setEditTitle(p.title);
+    setEditBody(p.body || '');
+    setEditErr('');
+  };
+
+  const handleEditSave = async () => {
+    if (!channelId || !editPost || !editTitle.trim()) {
+      setEditErr('Title is required');
+      return;
+    }
+    setEditBusy(true);
+    setEditErr('');
+    try {
+      const updated = await channelsApi.updateForumPost(channelId, editPost.id, {
+        title: editTitle.trim(),
+        body: editBody.trim() || null,
+      });
+      setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      setEditPost(null);
+    } catch (e: any) {
+      setEditErr(e.response?.data?.error || 'Failed to update');
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  const handleDeletePost = async (p: ForumPost) => {
+    if (!channelId || !confirm(`Delete post “${p.title}”? All replies will be removed.`)) return;
+    try {
+      await channelsApi.deleteForumPost(channelId, p.id);
+      setPosts((prev) => prev.filter((x) => x.id !== p.id));
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleCreate = async () => {
@@ -141,6 +200,27 @@ export default function ForumChannelPage() {
                 key={p.id}
                 type="button"
                 onClick={() => openPost(p.id)}
+                onContextMenu={(e) => {
+                  if (p.author_id !== user?.id) return;
+                  e.preventDefault();
+                  show(
+                    [
+                      {
+                        label: 'Edit post',
+                        icon: <Pencil size={14} />,
+                        onClick: () => openEdit(p),
+                      },
+                      {
+                        label: 'Delete post',
+                        icon: <Trash2 size={14} />,
+                        danger: true,
+                        onClick: () => void handleDeletePost(p),
+                      },
+                    ],
+                    e.clientX,
+                    e.clientY,
+                  );
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'flex-start',
@@ -172,6 +252,40 @@ export default function ForumChannelPage() {
           </div>
         )}
       </div>
+
+      <Modal
+        isOpen={!!editPost}
+        onClose={() => { setEditPost(null); setEditErr(''); }}
+        title="Edit post"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Input label="Title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} autoFocus />
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Message (optional)</label>
+            <textarea
+              value={editBody}
+              onChange={(e) => setEditBody(e.target.value)}
+              rows={4}
+              style={{
+                width: '100%',
+                padding: 10,
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-overlay)',
+                color: 'var(--text-primary)',
+                fontFamily: 'inherit',
+                fontSize: 14,
+                resize: 'vertical',
+              }}
+            />
+          </div>
+          {editErr ? <p style={{ color: 'var(--danger)', fontSize: 13, margin: 0 }}>{editErr}</p> : null}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button onClick={() => void handleEditSave()} isLoading={editBusy} style={{ flex: 1 }}>Save</Button>
+            <Button variant="secondary" onClick={() => setEditPost(null)}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal isOpen={createOpen} onClose={() => { setCreateOpen(false); setCreateErr(''); }} title="Create forum post">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

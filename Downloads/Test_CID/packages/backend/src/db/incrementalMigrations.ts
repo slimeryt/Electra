@@ -73,4 +73,27 @@ export function runIncrementalMigrations() {
       'CREATE INDEX IF NOT EXISTS idx_messages_forum_post_created ON messages(forum_post_id, created_at DESC)',
     );
   }
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS channel_read_state (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      channel_id TEXT NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+      last_read_at INTEGER NOT NULL,
+      PRIMARY KEY (user_id, channel_id)
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS message_reports (
+      id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+      reporter_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+      channel_id TEXT NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+      reason TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    )
+  `);
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_message_reports_channel ON message_reports(channel_id, created_at DESC)',
+  );
 }

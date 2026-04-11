@@ -4,6 +4,8 @@ import * as channelService from '../services/channelService';
 import * as categoryService from '../services/categoryService';
 import * as messageService from '../services/messageService';
 import * as forumService from '../services/forumService';
+import * as channelReadService from '../services/channelReadService';
+import * as reportService from '../services/reportService';
 import { getIo } from '../socket/index';
 import { httpError } from '../utils/httpError';
 import db from '../db/connection';
@@ -79,6 +81,12 @@ router.delete('/channels/:channelId', (req: AuthRequest, res, next) => {
   } catch (e) { next(e); }
 });
 
+router.post('/channels/:channelId/mark-read', (req: AuthRequest, res, next) => {
+  try {
+    res.json(channelReadService.markChannelRead(req.params.channelId, req.userId!));
+  } catch (e) { next(e); }
+});
+
 // Forum thread messages (before single-post and list routes)
 router.get('/channels/:channelId/forum/posts/:postId/messages', (req: AuthRequest, res, next) => {
   try {
@@ -87,7 +95,7 @@ router.get('/channels/:channelId/forum/posts/:postId/messages', (req: AuthReques
     const limit = parseLimit(req.query.limit, MAX_MESSAGES_QUERY_LIMIT, 50);
     const before = req.query.before as string | undefined;
     res.json(
-      messageService.getMessages(req.params.channelId, before, limit, req.params.postId),
+      messageService.getMessages(req.params.channelId, before, limit, req.params.postId, req.userId!),
     );
   } catch (e) { next(e); }
 });
@@ -117,6 +125,40 @@ router.get('/channels/:channelId/forum/posts/:postId', (req: AuthRequest, res, n
   try {
     const post = forumService.getPostInChannel(req.params.channelId, req.params.postId, req.userId!);
     res.json(post);
+  } catch (e) { next(e); }
+});
+
+router.patch('/channels/:channelId/forum/posts/:postId', (req: AuthRequest, res, next) => {
+  try {
+    const { title, body } = req.body;
+    const post = forumService.updatePostInChannel(
+      req.params.channelId,
+      req.params.postId,
+      req.userId!,
+      title,
+      body,
+    );
+    try {
+      const io = getIo();
+      const cid = req.params.channelId;
+      io.to(`channel:${cid}`).emit('forum_post_update', { channel_id: cid, post });
+      io.to(`forum_post:${req.params.postId}`).emit('forum_post_update', { channel_id: cid, post });
+    } catch { /* no socket */ }
+    res.json(post);
+  } catch (e) { next(e); }
+});
+
+router.delete('/channels/:channelId/forum/posts/:postId', (req: AuthRequest, res, next) => {
+  try {
+    const postId = req.params.postId;
+    forumService.deletePostInChannel(req.params.channelId, postId, req.userId!);
+    try {
+      const io = getIo();
+      const cid = req.params.channelId;
+      io.to(`channel:${cid}`).emit('forum_post_delete', { channel_id: cid, post_id: postId });
+      io.to(`forum_post:${postId}`).emit('forum_post_delete', { channel_id: cid, post_id: postId });
+    } catch { /* no socket */ }
+    res.json({ ok: true });
   } catch (e) { next(e); }
 });
 
@@ -166,6 +208,7 @@ router.get('/channels/:channelId/messages', (req: AuthRequest, res, next) => {
         before as string,
         limit,
         (forum_post_id as string) || null,
+        req.userId!,
       ),
     );
   } catch (e) { next(e); }
@@ -186,6 +229,15 @@ router.post('/channels/:channelId/messages', (req: AuthRequest, res, next) => {
         req.body.reply_to_id,
         forum_post_id || null,
       ),
+    );
+  } catch (e) { next(e); }
+});
+
+router.post('/channels/:channelId/messages/:messageId/report', (req: AuthRequest, res, next) => {
+  try {
+    const { reason } = req.body;
+    res.status(201).json(
+      reportService.reportChannelMessage(req.userId!, req.params.channelId, req.params.messageId, reason),
     );
   } catch (e) { next(e); }
 });

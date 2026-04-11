@@ -16,7 +16,7 @@ import { useMobileNavStore } from '../store/mobileNavStore';
 
 export default function MainLayout() {
   const { activeServerId } = useServerStore();
-  const { requests } = useFriendStore();
+  const { requests, fetchBlocked } = useFriendStore();
   const location = useLocation();
   const navigate = useNavigate();
   const isPhone = usePhoneLayout();
@@ -42,6 +42,10 @@ export default function MainLayout() {
   useEffect(() => {
     if (isPhone) useMobileNavStore.getState().closeAll();
   }, [location.pathname, isPhone]);
+
+  useEffect(() => {
+    fetchBlocked();
+  }, [fetchBlocked]);
 
   const dmSidebarCard = (
     <div

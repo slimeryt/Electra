@@ -13,6 +13,11 @@ router.get('/', (req: AuthRequest, res, next) => {
   try { res.json(friendService.getFriends(req.userId!)); } catch (e) { next(e); }
 });
 
+// GET /friends/blocked — users you blocked
+router.get('/blocked', (req: AuthRequest, res, next) => {
+  try { res.json(friendService.getBlockedUsers(req.userId!)); } catch (e) { next(e); }
+});
+
 // GET /friends/requests — incoming + outgoing pending requests
 router.get('/requests', (req: AuthRequest, res, next) => {
   try { res.json(friendService.getPendingRequests(req.userId!)); } catch (e) { next(e); }

@@ -5,10 +5,14 @@ import { friendsApi } from '../api/friends';
 interface FriendState {
   friends: Friend[];
   requests: Friend[];
+  /** User IDs you blocked (for filtering realtime messages). */
+  blockedUserIds: string[];
   isLoaded: boolean;
 
   fetchFriends: () => Promise<void>;
   fetchRequests: () => Promise<void>;
+  fetchBlocked: () => Promise<void>;
+  blockUser: (targetUserId: string) => Promise<void>;
   sendRequest: (username: string) => Promise<void>;
   acceptRequest: (friendshipId: string) => Promise<void>;
   declineRequest: (friendshipId: string) => Promise<void>;
@@ -23,11 +27,30 @@ interface FriendState {
 export const useFriendStore = create<FriendState>((set, get) => ({
   friends: [],
   requests: [],
+  blockedUserIds: [],
   isLoaded: false,
 
   fetchFriends: async () => {
     const friends = await friendsApi.list();
     set({ friends, isLoaded: true });
+  },
+
+  fetchBlocked: async () => {
+    try {
+      const users = await friendsApi.listBlocked();
+      set({ blockedUserIds: users.map((u) => u.id) });
+    } catch {
+      set({ blockedUserIds: [] });
+    }
+  },
+
+  blockUser: async (targetUserId) => {
+    await friendsApi.block(targetUserId);
+    set((s) => ({
+      blockedUserIds: s.blockedUserIds.includes(targetUserId) ? s.blockedUserIds : [...s.blockedUserIds, targetUserId],
+      friends: s.friends.filter((f) => f.user.id !== targetUserId),
+      requests: s.requests.filter((r) => r.user.id !== targetUserId),
+    }));
   },
 
   fetchRequests: async () => {

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { getSocket } from '../socket/client';
 import { useMessageStore, useVoiceStore, useAuthStore, useChannelStore, useFriendStore } from '../store';
+import type { Message } from '../types/models';
 
 export function useSocketEvents() {
   const { addMessage, updateMessage, deleteMessage, addDmMessage, updateDmMessage } = useMessageStore();
@@ -19,7 +20,12 @@ export function useSocketEvents() {
   useEffect(() => {
     const socket = getSocket();
 
-    socket.on('message_create', addMessage);
+    const onChannelMessage = (message: Message) => {
+      const blocked = useFriendStore.getState().blockedUserIds;
+      if (message.author_id && blocked.includes(message.author_id)) return;
+      addMessage(message);
+    };
+    socket.on('message_create', onChannelMessage);
 
     socket.on('message_update', ({ message_id, content, edited_at, channel_id, forum_post_id }: any) => {
       const key = forum_post_id ? `forum:${forum_post_id}` : channel_id;
@@ -121,7 +127,7 @@ export function useSocketEvents() {
     });
 
     return () => {
-      socket.off('message_create');
+      socket.off('message_create', onChannelMessage);
       socket.off('message_update');
       socket.off('message_delete');
       socket.off('dm_message_create');

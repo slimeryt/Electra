@@ -122,6 +122,28 @@ export function removeFriend(userId: string, targetUserId: string) {
   return { ok: true };
 }
 
+/** User IDs you have blocked (you are requester, they are addressee). */
+export function getBlockedTargetIds(userId: string): string[] {
+  const rows = db
+    .prepare(
+      `SELECT addressee_id AS id FROM friendships WHERE requester_id = ? AND status = 'blocked'`,
+    )
+    .all(userId) as { id: string }[];
+  return rows.map((r) => r.id);
+}
+
+export function getBlockedUsers(userId: string) {
+  return db
+    .prepare(
+      `SELECT u.id, u.username, u.display_name, u.avatar_url, u.status
+       FROM friendships f
+       JOIN users u ON u.id = f.addressee_id
+       WHERE f.requester_id = ? AND f.status = 'blocked'
+       ORDER BY u.display_name ASC`,
+    )
+    .all(userId);
+}
+
 export function blockUser(userId: string, targetUserId: string) {
   const existing = db.prepare(
     'SELECT * FROM friendships WHERE (requester_id = ? AND addressee_id = ?) OR (requester_id = ? AND addressee_id = ?)'
