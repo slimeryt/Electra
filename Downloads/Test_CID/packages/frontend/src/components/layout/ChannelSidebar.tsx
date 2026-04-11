@@ -1,6 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Hash, Volume2, Megaphone, ChevronDown, ChevronRight, Plus, CheckCheck, Clipboard, Pencil, Trash2, FolderPlus, Mic } from 'lucide-react';
+import {
+  Hash, Volume2, Megaphone, ChevronDown, ChevronRight,
+  Plus, CheckCheck, Clipboard, Pencil, Trash2, FolderPlus, Mic,
+} from 'lucide-react';
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+  DragOverEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useChannelStore } from '../../store/channelStore';
 import { useServerStore } from '../../store/serverStore';
 import { useAuthStore } from '../../store/authStore';
@@ -12,11 +33,190 @@ import { channelsApi } from '../../api/channels';
 import { categoriesApi, ServerCategory } from '../../api/categories';
 import { Avatar } from '../ui/Avatar';
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 function ChannelIcon({ type }: { type: string }) {
   if (type === 'voice') return <Volume2 size={15} style={{ opacity: 0.6, flexShrink: 0 }} />;
   if (type === 'announcement') return <Megaphone size={15} style={{ opacity: 0.6, flexShrink: 0 }} />;
   return <Hash size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />;
 }
+
+// dnd-kit IDs are prefixed to avoid collisions between categories and channels
+const CAT_PREFIX = 'cat-';
+const CH_PREFIX = 'ch-';
+
+function isCatId(id: string) { return id.startsWith(CAT_PREFIX); }
+function rawCatId(id: string) { return id.slice(CAT_PREFIX.length); }
+function rawChId(id: string) { return id.slice(CH_PREFIX.length); }
+
+// ─── SortableCategory ────────────────────────────────────────────────────────
+
+interface SortableCategoryProps {
+  cat: ServerCategory;
+  disabled: boolean;
+  isCollapsed: boolean;
+  isDragOverForChannel: boolean;
+  onToggleCollapse: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+  onCreateChannel: () => void;
+  isAdminOrOwner: boolean;
+  children: React.ReactNode;
+}
+
+function SortableCategory({
+  cat, disabled, isCollapsed, isDragOverForChannel,
+  onToggleCollapse, onContextMenu, onCreateChannel,
+  isAdminOrOwner, children,
+}: SortableCategoryProps) {
+  const {
+    attributes, listeners, setNodeRef,
+    transform, transition, isDragging,
+  } = useSortable({ id: `${CAT_PREFIX}${cat.id}`, disabled });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      {/* Category header */}
+      <div
+        onClick={onToggleCollapse}
+        onContextMenu={onContextMenu}
+        // drag handle: spread listeners/attributes on the header so only the
+        // header row initiates category drags (not channel rows inside)
+        {...(isAdminOrOwner ? { ...attributes, ...listeners } : {})}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          padding: '10px 8px 4px 14px',
+          cursor: isAdminOrOwner ? 'grab' : 'pointer',
+          color: isDragOverForChannel ? 'var(--accent)' : 'var(--text-muted)',
+          fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
+          userSelect: 'none', transition: 'var(--transition)',
+          background: isDragOverForChannel ? 'rgba(88,101,242,0.08)' : 'transparent',
+          borderRadius: isDragOverForChannel ? 'var(--radius-sm)' : 0,
+        }}
+        onMouseEnter={e => { if (!isDragOverForChannel) e.currentTarget.style.color = 'var(--text-secondary)'; }}
+        onMouseLeave={e => { if (!isDragOverForChannel) e.currentTarget.style.color = 'var(--text-muted)'; }}
+      >
+        {isCollapsed
+          ? <ChevronRight size={11} style={{ flexShrink: 0 }} />
+          : <ChevronDown size={11} style={{ flexShrink: 0 }} />
+        }
+        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {cat.name}
+        </span>
+        {isAdminOrOwner && (
+          <span
+            onClick={e => { e.stopPropagation(); onCreateChannel(); }}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0 2px', opacity: 0.6 }}
+            title="Create Channel"
+            // prevent the click from bubbling to the drag listeners
+            onPointerDown={e => e.stopPropagation()}
+          >
+            <Plus size={13} />
+          </span>
+        )}
+      </div>
+
+      {/* Channel rows rendered by parent */}
+      {!isCollapsed && children}
+    </div>
+  );
+}
+
+// ─── SortableChannel ─────────────────────────────────────────────────────────
+
+interface SortableChannelProps {
+  channel: Channel;
+  disabled: boolean;
+  isActive: boolean;
+  activeVoiceChannelId: string | null | undefined;
+  channelParticipants: Record<string, { userId: string; user?: any }[]>;
+  userId: string | undefined;
+  onClick: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+}
+
+function SortableChannel({
+  channel, disabled, isActive,
+  activeVoiceChannelId, channelParticipants,
+  userId, onClick, onContextMenu,
+}: SortableChannelProps) {
+  const {
+    attributes, listeners, setNodeRef,
+    transform, transition, isDragging,
+  } = useSortable({ id: `${CH_PREFIX}${channel.id}`, disabled });
+
+  const style: React.CSSProperties = {
+    margin: '1px 6px',
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  const participants = channelParticipants[channel.id] || [];
+
+  return (
+    <div ref={setNodeRef} style={style} {...(disabled ? {} : { ...attributes, ...listeners })}>
+      <div
+        onClick={onClick}
+        onContextMenu={onContextMenu}
+        // stop pointer events from re-triggering sortable drag on inner click
+        onPointerDown={e => e.stopPropagation()}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 7,
+          padding: '5px 10px', borderRadius: 'var(--radius-md)',
+          cursor: 'pointer',
+          background: isActive
+            ? 'linear-gradient(135deg, rgba(88,101,242,0.22) 0%, rgba(124,58,237,0.10) 100%)'
+            : 'transparent',
+          color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+          boxShadow: isActive ? '0 0 0 1px rgba(88,101,242,0.28), inset 0 0 24px rgba(88,101,242,0.06)' : 'none',
+          transition: 'all var(--transition)', userSelect: 'none',
+        }}
+        onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
+        onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}
+      >
+        <ChannelIcon type={channel.type} />
+        <span style={{ fontSize: 13.5, fontWeight: isActive ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          {channel.name}
+        </span>
+        {channel.type === 'voice' && activeVoiceChannelId === channel.id && (
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', flexShrink: 0, boxShadow: '0 0 6px rgba(34,197,94,0.6)' }} />
+        )}
+      </div>
+      {/* Voice participants */}
+      {channel.type === 'voice' && participants.length > 0 && (
+        <div style={{ paddingLeft: 28, paddingBottom: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {participants.map(p => (
+            <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 6px', borderRadius: 'var(--radius-sm)', opacity: 0.85 }}>
+              <Avatar user={p.user as any} size={16} />
+              <span style={{ fontSize: 11.5, color: p.userId === userId ? 'var(--success)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {p.user?.display_name || p.user?.username || 'User'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CategoryDropZone ─────────────────────────────────────────────────────────
+// An invisible droppable target that covers a category, used to detect when
+// a channel is dragged over a different category. We use useSortable with
+// disabled=true so it acts as a pure drop target with an id the DragOver
+// handler can read.
+
+function CategoryDropZone({ catId }: { catId: string }) {
+  const { setNodeRef } = useSortable({ id: `zone-${catId}`, disabled: true });
+  return <div ref={setNodeRef} style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }} />;
+}
+
+// ─── ChannelSidebar ───────────────────────────────────────────────────────────
 
 export function ChannelSidebar({ serverId }: { serverId: string }) {
   const { channelsByServer, activeChannelId, setActiveChannel, fetchChannels, removeChannel } = useChannelStore();
@@ -39,13 +239,17 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
   const newCatInputRef = useRef<HTMLInputElement>(null);
 
   // Drag state
-  const dragItem = useRef<{ type: 'channel' | 'category'; id: string } | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  // catId that a channel is currently being dragged over (for highlight)
   const [dragOverCatId, setDragOverCatId] = useState<string | null>(null);
-  const [dragOverChannelId, setDragOverChannelId] = useState<string | null>(null);
 
   const channels = channelsByServer[serverId] || [];
   const server = servers.find(s => s.id === serverId);
   const isAdminOrOwner = server?.owner_id === user?.id;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  );
 
   useEffect(() => {
     if (!serverId) return;
@@ -61,107 +265,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
     if (creatingCategory) newCatInputRef.current?.focus();
   }, [creatingCategory]);
 
-  // ─── Category drag ───────────────────────────────────────────────────────────
-
-  const handleCategoryDragStart = (catId: string) => {
-    dragItem.current = { type: 'category', id: catId };
-  };
-
-  const handleCategoryDragOver = (e: React.DragEvent, targetCatId: string) => {
-    e.preventDefault();
-    if (!dragItem.current || dragItem.current.type !== 'category' || dragItem.current.id === targetCatId) return;
-    setCategories(prev => {
-      const arr = [...prev];
-      const fromIdx = arr.findIndex(c => c.id === dragItem.current!.id);
-      const toIdx = arr.findIndex(c => c.id === targetCatId);
-      if (fromIdx === -1 || toIdx === -1) return prev;
-      const [item] = arr.splice(fromIdx, 1);
-      arr.splice(toIdx, 0, item);
-      return arr;
-    });
-  };
-
-  const handleCategoryDrop = async (targetCatId: string) => {
-    if (!dragItem.current || dragItem.current.type !== 'category') { dragItem.current = null; return; }
-    dragItem.current = null;
-    setDragOverCatId(null);
-    await Promise.all(categories.map((c, i) => categoriesApi.update(serverId, c.id, { position: i })));
-  };
-
-  // ─── Channel drag ────────────────────────────────────────────────────────────
-
-  const handleChannelDragStart = (channelId: string) => {
-    dragItem.current = { type: 'channel', id: channelId };
-  };
-
-  // Drag over another channel: reorder within same category
-  const handleChannelDragOver = (e: React.DragEvent, targetChannelId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!dragItem.current || dragItem.current.type !== 'channel') return;
-    if (dragItem.current.id === targetChannelId) return;
-    setDragOverChannelId(targetChannelId);
-
-    setLocalChannels(prev => {
-      const arr = [...prev];
-      const fromIdx = arr.findIndex(c => c.id === dragItem.current!.id);
-      const toIdx = arr.findIndex(c => c.id === targetChannelId);
-      if (fromIdx === -1 || toIdx === -1) return prev;
-      const fromCat = (arr[fromIdx] as any).category;
-      const toCat = (arr[toIdx] as any).category;
-      if (fromCat !== toCat) return prev; // cross-category handled by category drop zone
-      const [item] = arr.splice(fromIdx, 1);
-      arr.splice(toIdx, 0, item);
-      return arr;
-    });
-  };
-
-  // Drag over a category header: show it as a drop zone
-  const handleCategoryDropZoneDragOver = (e: React.DragEvent, catName: string) => {
-    e.preventDefault();
-    if (!dragItem.current || dragItem.current.type !== 'channel') return;
-    setDragOverCatId(catName);
-    setDragOverChannelId(null);
-  };
-
-  // Drop on a category header: move channel to that category
-  const handleCategoryDropZoneDrop = async (e: React.DragEvent, catName: string) => {
-    e.preventDefault();
-    if (!dragItem.current || dragItem.current.type !== 'channel') { dragItem.current = null; return; }
-    const channelId = dragItem.current.id;
-    dragItem.current = null;
-    setDragOverCatId(null);
-
-    // Move channel to the new category at the end
-    const catChannels = localChannels.filter(c => ((c as any).category || '') === catName);
-    const newPosition = catChannels.length;
-    setLocalChannels(prev => prev.map(c => c.id === channelId
-      ? { ...c, category: catName } as any
-      : c
-    ));
-    await channelsApi.update(channelId, { category: catName, position: newPosition });
-  };
-
-  // Drop on channel (finalize same-category reorder)
-  const handleChannelDrop = async (targetChannelId: string) => {
-    if (!dragItem.current || dragItem.current.type !== 'channel') { dragItem.current = null; return; }
-    dragItem.current = null;
-    setDragOverChannelId(null);
-    // Persist positions for channels in the same category
-    const droppedChannel = localChannels.find(c => c.id === targetChannelId);
-    if (!droppedChannel) return;
-    const cat = (droppedChannel as any).category;
-    const catChannels = localChannels.filter(c => ((c as any).category || '') === (cat || ''));
-    await Promise.all(catChannels.map((ch, i) => channelsApi.update(ch.id, { position: i })));
-  };
-
-  const handleDragEnd = () => {
-    dragItem.current = null;
-    setDragOverCatId(null);
-    setDragOverChannelId(null);
-  };
-
-  // ─── Sidebar / category context menus ────────────────────────────────────────
+  // ─── Context menus ────────────────────────────────────────────────────────
 
   const openCreate = (type: 'text' | 'voice' | 'announcement', catName?: string) => {
     setCreateModalType(type);
@@ -199,8 +303,6 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
     ], e.clientX, e.clientY);
   };
 
-  // ─── Channel context menu ────────────────────────────────────────────────────
-
   const handleChannelContextMenu = (e: React.MouseEvent, channel: Channel) => {
     e.preventDefault();
     e.stopPropagation();
@@ -231,7 +333,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
     }
   };
 
-  // ─── Create category ─────────────────────────────────────────────────────────
+  // ─── Create category ─────────────────────────────────────────────────────
 
   const handleCreateCategory = async () => {
     const name = newCatName.trim();
@@ -244,7 +346,122 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
     setNewCatName('');
   };
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
+  // ─── dnd-kit event handlers ───────────────────────────────────────────────
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
+    setDragOverCatId(null);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) { setDragOverCatId(null); return; }
+
+    const activeIdStr = String(active.id);
+    const overIdStr = String(over.id);
+
+    // Only care about channel-over-category moves here
+    if (!activeIdStr.startsWith(CH_PREFIX)) return;
+
+    const channelId = rawChId(activeIdStr);
+    const draggedChannel = localChannels.find(c => c.id === channelId);
+    if (!draggedChannel) return;
+
+    const draggedCatName = (draggedChannel as any).category || '';
+
+    // Over a category header
+    if (overIdStr.startsWith(CAT_PREFIX)) {
+      const targetCatId = rawCatId(overIdStr);
+      const targetCat = categories.find(c => c.id === targetCatId);
+      if (!targetCat) return;
+      if (targetCat.name === draggedCatName) { setDragOverCatId(null); return; }
+      setDragOverCatId(targetCatId);
+
+      // Optimistically move the channel into the new category (at end)
+      setLocalChannels(prev => {
+        const arr = [...prev];
+        const idx = arr.findIndex(c => c.id === channelId);
+        if (idx === -1) return prev;
+        arr[idx] = { ...arr[idx], category: targetCat.name } as any;
+        return arr;
+      });
+      return;
+    }
+
+    // Over another channel — reorder within same category
+    if (overIdStr.startsWith(CH_PREFIX)) {
+      setDragOverCatId(null);
+      const targetChannelId = rawChId(overIdStr);
+      if (channelId === targetChannelId) return;
+
+      setLocalChannels(prev => {
+        const fromIdx = prev.findIndex(c => c.id === channelId);
+        const toIdx = prev.findIndex(c => c.id === targetChannelId);
+        if (fromIdx === -1 || toIdx === -1) return prev;
+        // Only reorder within same category
+        const fromCat = (prev[fromIdx] as any).category || '';
+        const toCat = (prev[toIdx] as any).category || '';
+        if (fromCat !== toCat) return prev;
+        return arrayMove(prev, fromIdx, toIdx);
+      });
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+    setDragOverCatId(null);
+
+    if (!over) return;
+
+    const activeIdStr = String(active.id);
+    const overIdStr = String(over.id);
+
+    // ── Category reorder ──
+    if (activeIdStr.startsWith(CAT_PREFIX) && overIdStr.startsWith(CAT_PREFIX)) {
+      const fromCatId = rawCatId(activeIdStr);
+      const toCatId = rawCatId(overIdStr);
+      if (fromCatId === toCatId) return;
+
+      const fromIdx = categories.findIndex(c => c.id === fromCatId);
+      const toIdx = categories.findIndex(c => c.id === toCatId);
+      if (fromIdx === -1 || toIdx === -1) return;
+
+      const reordered = arrayMove(categories, fromIdx, toIdx);
+      setCategories(reordered);
+      await Promise.all(reordered.map((c, i) => categoriesApi.update(serverId, c.id, { position: i })));
+      return;
+    }
+
+    // ── Channel drag end ──
+    if (activeIdStr.startsWith(CH_PREFIX)) {
+      const channelId = rawChId(activeIdStr);
+      const draggedChannel = localChannels.find(c => c.id === channelId);
+      if (!draggedChannel) return;
+
+      // Dropped on a category header — cross-category move
+      if (overIdStr.startsWith(CAT_PREFIX)) {
+        const targetCatId = rawCatId(overIdStr);
+        const targetCat = categories.find(c => c.id === targetCatId);
+        if (!targetCat) return;
+        const catChannels = localChannels.filter(c => ((c as any).category || '') === targetCat.name);
+        const newPos = catChannels.findIndex(c => c.id === channelId);
+        const position = newPos === -1 ? catChannels.length : newPos;
+        await channelsApi.update(channelId, { category: targetCat.name, position });
+        return;
+      }
+
+      // Dropped on another channel — same-category reorder (local state already updated in DragOver)
+      if (overIdStr.startsWith(CH_PREFIX)) {
+        const cat = (draggedChannel as any).category || '';
+        const catChannels = localChannels.filter(c => ((c as any).category || '') === cat);
+        await Promise.all(catChannels.map((ch, i) => channelsApi.update(ch.id, { position: i })));
+        return;
+      }
+    }
+  };
+
+  // ─── Render helpers ───────────────────────────────────────────────────────
 
   // Build ordered category list — categories with channels grouped, empty categories shown too
   const channelsByCategory = localChannels.reduce<Record<string, Channel[]>>((acc, ch) => {
@@ -260,6 +477,17 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
     const cat = (ch as any).category;
     return !cat || !knownCatNames.has(cat);
   });
+
+  // The item being dragged (for DragOverlay preview)
+  const activeChannel = activeId?.startsWith(CH_PREFIX)
+    ? localChannels.find(c => c.id === rawChId(activeId))
+    : null;
+  const activeCat = activeId?.startsWith(CAT_PREFIX)
+    ? categories.find(c => c.id === rawCatId(activeId))
+    : null;
+
+  // Sorted category ids for SortableContext
+  const sortedCatIds = categories.map(c => `${CAT_PREFIX}${c.id}`);
 
   return (
     <div style={{
@@ -335,92 +563,68 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
           </div>
         )}
 
-        {/* Explicit categories */}
-        {categories.map(cat => {
-          const chs = channelsByCategory[cat.name] || [];
-          const isCollapsed = collapsed[cat.id];
-          const isDragTarget = dragOverCatId === cat.name;
-          return (
-            <div
-              key={cat.id}
-              draggable={isAdminOrOwner}
-              onDragStart={() => handleCategoryDragStart(cat.id)}
-              onDragOver={e => {
-                if (dragItem.current?.type === 'category') handleCategoryDragOver(e, cat.id);
-                else handleCategoryDropZoneDragOver(e, cat.name);
-              }}
-              onDrop={e => {
-                if (dragItem.current?.type === 'category') handleCategoryDrop(cat.id);
-                else handleCategoryDropZoneDrop(e, cat.name);
-              }}
-              onDragEnd={handleDragEnd}
-            >
-              {/* Category header */}
-              <div
-                onClick={() => setCollapsed(s => ({ ...s, [cat.id]: !s[cat.id] }))}
-                onContextMenu={e => handleCategoryContextMenu(e, cat)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '10px 8px 4px 14px',
-                  cursor: 'pointer', color: isDragTarget ? 'var(--accent)' : 'var(--text-muted)',
-                  fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
-                  userSelect: 'none', transition: 'var(--transition)',
-                  background: isDragTarget ? 'rgba(88,101,242,0.08)' : 'transparent',
-                  borderRadius: isDragTarget ? 'var(--radius-sm)' : 0,
-                }}
-                onMouseEnter={e => { if (!isDragTarget) e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                onMouseLeave={e => { if (!isDragTarget) e.currentTarget.style.color = 'var(--text-muted)'; }}
-              >
-                {isCollapsed
-                  ? <ChevronRight size={11} style={{ flexShrink: 0 }} />
-                  : <ChevronDown size={11} style={{ flexShrink: 0 }} />
-                }
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {cat.name}
-                </span>
-                {isAdminOrOwner && (
-                  <span
-                    onClick={e => { e.stopPropagation(); setCreateModalCategory(cat.name); setShowCreateModal(true); }}
-                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0 2px', opacity: 0.6 }}
-                    title="Create Channel"
-                  >
-                    <Plus size={13} />
-                  </span>
-                )}
-              </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          {/* Sortable categories */}
+          <SortableContext items={sortedCatIds} strategy={verticalListSortingStrategy}>
+            {categories.map(cat => {
+              const chs = channelsByCategory[cat.name] || [];
+              const isCollapsed = collapsed[cat.id];
+              const sortedChIds = chs.map(c => `${CH_PREFIX}${c.id}`);
 
-              {/* Channel rows */}
-              {!isCollapsed && chs.map(channel => {
+              return (
+                <SortableCategory
+                  key={cat.id}
+                  cat={cat}
+                  disabled={!isAdminOrOwner}
+                  isCollapsed={!!isCollapsed}
+                  isDragOverForChannel={dragOverCatId === cat.id}
+                  onToggleCollapse={() => setCollapsed(s => ({ ...s, [cat.id]: !s[cat.id] }))}
+                  onContextMenu={e => handleCategoryContextMenu(e, cat)}
+                  onCreateChannel={() => { setCreateModalCategory(cat.name); setShowCreateModal(true); }}
+                  isAdminOrOwner={isAdminOrOwner}
+                >
+                  <SortableContext items={sortedChIds} strategy={verticalListSortingStrategy}>
+                    {chs.map(channel => (
+                      <SortableChannel
+                        key={channel.id}
+                        channel={channel}
+                        disabled={!isAdminOrOwner}
+                        isActive={activeChannelId === channel.id}
+                        activeVoiceChannelId={activeVoiceChannelId}
+                        channelParticipants={channelParticipants}
+                        userId={user?.id}
+                        onClick={() => handleChannelClick(channel)}
+                        onContextMenu={e => handleChannelContextMenu(e, channel)}
+                      />
+                    ))}
+                  </SortableContext>
+                </SortableCategory>
+              );
+            })}
+          </SortableContext>
+
+          {/* Orphan channels (no category / unknown category) */}
+          {orphanChannels.length > 0 && (
+            <div>
+              {orphanChannels.map(channel => {
                 const isActive = activeChannelId === channel.id;
-                const isDraggingThis = dragItem.current?.id === channel.id && dragItem.current?.type === 'channel';
-                const isDragOverThis = dragOverChannelId === channel.id;
                 return (
-                  <div
-                    key={channel.id}
-                    draggable={isAdminOrOwner}
-                    onDragStart={() => handleChannelDragStart(channel.id)}
-                    onDragOver={e => handleChannelDragOver(e, channel.id)}
-                    onDrop={() => handleChannelDrop(channel.id)}
-                    onDragEnd={handleDragEnd}
-                    style={{
-                      margin: '1px 6px',
-                      opacity: isDraggingThis ? 0.4 : 1,
-                      transition: 'opacity 120ms',
-                      borderTop: isDragOverThis ? '2px solid var(--accent)' : '2px solid transparent',
-                    }}
-                  >
+                  <div key={channel.id} style={{ margin: '1px 6px' }}>
                     <div
                       onClick={() => handleChannelClick(channel)}
-                      onContextMenu={(e) => handleChannelContextMenu(e, channel)}
+                      onContextMenu={e => handleChannelContextMenu(e, channel)}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 7,
                         padding: '5px 10px', borderRadius: 'var(--radius-md)',
                         cursor: 'pointer',
-                        background: isActive
-                          ? 'linear-gradient(135deg, rgba(88,101,242,0.22) 0%, rgba(124,58,237,0.10) 100%)'
-                          : 'transparent',
+                        background: isActive ? 'linear-gradient(135deg, rgba(88,101,242,0.22) 0%, rgba(124,58,237,0.10) 100%)' : 'transparent',
                         color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        boxShadow: isActive ? '0 0 0 1px rgba(88,101,242,0.28), inset 0 0 24px rgba(88,101,242,0.06)' : 'none',
                         transition: 'all var(--transition)', userSelect: 'none',
                       }}
                       onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
@@ -430,61 +634,55 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
                       <span style={{ fontSize: 13.5, fontWeight: isActive ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                         {channel.name}
                       </span>
-                      {channel.type === 'voice' && activeVoiceChannelId === channel.id && (
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', flexShrink: 0, boxShadow: '0 0 6px rgba(34,197,94,0.6)' }} />
-                      )}
                     </div>
-                    {/* Voice participants */}
-                    {channel.type === 'voice' && (channelParticipants[channel.id]?.length ?? 0) > 0 && (
-                      <div style={{ paddingLeft: 28, paddingBottom: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        {(channelParticipants[channel.id] || []).map(p => (
-                          <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 6px', borderRadius: 'var(--radius-sm)', opacity: 0.85 }}>
-                            <Avatar user={p.user as any} size={16} />
-                            <span style={{ fontSize: 11.5, color: p.userId === user?.id ? 'var(--success)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {p.user?.display_name || p.user?.username || 'User'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 );
               })}
             </div>
-          );
-        })}
+          )}
 
-        {/* Orphan channels (no category / unknown category) */}
-        {orphanChannels.length > 0 && (
-          <div>
-            {orphanChannels.map(channel => {
-              const isActive = activeChannelId === channel.id;
-              return (
-                <div key={channel.id} style={{ margin: '1px 6px' }}>
-                  <div
-                    onClick={() => handleChannelClick(channel)}
-                    onContextMenu={(e) => handleChannelContextMenu(e, channel)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 7,
-                      padding: '5px 10px', borderRadius: 'var(--radius-md)',
-                      cursor: 'pointer',
-                      background: isActive ? 'linear-gradient(135deg, rgba(88,101,242,0.22) 0%, rgba(124,58,237,0.10) 100%)' : 'transparent',
-                      color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      transition: 'all var(--transition)', userSelect: 'none',
-                    }}
-                    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
-                    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}
-                  >
-                    <ChannelIcon type={channel.type} />
-                    <span style={{ fontSize: 13.5, fontWeight: isActive ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                      {channel.name}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+          {/* DragOverlay — lightweight preview that follows the cursor */}
+          <DragOverlay>
+            {activeChannel && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '5px 10px', margin: '0 6px',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-overlay)',
+                border: '1px solid var(--accent)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+                color: 'var(--text-primary)',
+                fontSize: 13.5, fontWeight: 500,
+                opacity: 0.92, cursor: 'grabbing',
+                backdropFilter: 'blur(8px)',
+                pointerEvents: 'none',
+              }}>
+                <ChannelIcon type={activeChannel.type} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {activeChannel.name}
+                </span>
+              </div>
+            )}
+            {activeCat && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '6px 14px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--bg-overlay)',
+                border: '1px solid var(--accent)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+                color: 'var(--accent)',
+                fontSize: 10.5, fontWeight: 700,
+                letterSpacing: '0.07em', textTransform: 'uppercase',
+                opacity: 0.92, cursor: 'grabbing',
+                backdropFilter: 'blur(8px)',
+                pointerEvents: 'none',
+              }}>
+                {activeCat.name}
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
       </div>
 
       {isAdminOrOwner && (

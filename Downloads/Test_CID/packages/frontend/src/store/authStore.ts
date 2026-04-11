@@ -6,6 +6,7 @@ import { connectSocket, disconnectSocket } from '../socket/client';
 import { isElectron } from '../env';
 import { clearPersistedAuth, hydrateAuthFromDisk, persistAuthTokens } from '../lib/electronAuthPersist';
 import { useThemeStore, type Theme } from './themeStore';
+import { upsertSavedAccount } from '../lib/savedAccounts';
 
 function applyUserTheme(user: User) {
   if (user.theme) useThemeStore.getState().setTheme(user.theme as Theme);
@@ -35,6 +36,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
     if (isElectron) await persistAuthTokens(accessToken, refreshToken);
+    upsertSavedAccount(user);
     set({ user, isAuthenticated: true });
     applyUserTheme(user);
     connectSocket(accessToken);
@@ -45,6 +47,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
     if (isElectron) await persistAuthTokens(accessToken, refreshToken);
+    upsertSavedAccount(user);
     set({ user, isAuthenticated: true });
     applyUserTheme(user);
     connectSocket(accessToken);
