@@ -77,7 +77,8 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_channel_created ON messages(channel_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_messages_forum_post_created ON messages(forum_post_id, created_at DESC);
+-- idx_messages_forum_post_created: do NOT define here — existing DBs skip CREATE TABLE messages
+-- but would still run this index and fail (no forum_post_id yet). incrementalMigrations.ts creates it after ADD COLUMN.
 
 CREATE TABLE IF NOT EXISTS attachments (
   id         TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
