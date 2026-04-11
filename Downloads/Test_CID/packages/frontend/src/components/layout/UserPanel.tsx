@@ -42,9 +42,9 @@ export function UserPanel() {
         maxWidth: 'none',
         zIndex: 205,
         boxSizing: 'border-box',
-        background: '#232428',
+        background: 'var(--bg-elevated)',
         border: 'none',
-        borderTop: '1px solid rgba(0, 0, 0, 0.35)',
+        borderTop: '1px solid var(--border-strong)',
         borderRadius: 0,
         boxShadow: 'none',
         backdropFilter: 'none',
@@ -234,10 +234,11 @@ function PanelBtn({
         transition: 'var(--transition)',
         flexShrink: 0,
       }}
+      aria-label={title}
       onMouseEnter={e => {
         if (disabled) return;
         if (!active) {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.09)';
+          e.currentTarget.style.background = 'var(--bg-hover)';
           e.currentTarget.style.color = 'var(--text-primary)';
         }
       }}

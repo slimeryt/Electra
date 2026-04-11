@@ -1,4 +1,4 @@
-import { InputHTMLAttributes, forwardRef, useState, ReactNode } from 'react';
+import { InputHTMLAttributes, forwardRef, useState, useId, ReactNode } from 'react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -7,19 +7,24 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, leftIcon, style, onFocus, onBlur, ...props }, ref) => {
+  ({ label, error, leftIcon, style, onFocus, onBlur, id: idProp, ...props }, ref) => {
     const [focused, setFocused] = useState(false);
+    const genId = useId();
+    const inputId = idProp ?? genId;
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {label && (
-          <label style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: 'var(--text-secondary)',
-            letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-          }}>
+          <label
+            htmlFor={inputId}
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+            }}
+          >
             {label}
           </label>
         )}
@@ -38,6 +43,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
+            id={inputId}
             style={{
               width: '100%',
               padding: leftIcon ? '10px 12px 10px 36px' : '10px 12px',

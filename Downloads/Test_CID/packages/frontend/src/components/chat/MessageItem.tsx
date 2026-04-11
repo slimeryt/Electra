@@ -31,9 +31,11 @@ function formatTime(ts: number): string {
 function ActionBtn({ children, onClick, danger, title }: { children: React.ReactNode; onClick: () => void; danger?: boolean; title?: string }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       title={title}
-      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 6px', borderRadius: 'var(--radius-sm)', fontSize: 13, transition: 'var(--transition)', display: 'flex', alignItems: 'center' }}
+      aria-label={title}
+      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', minWidth: 32, minHeight: 32, borderRadius: 'var(--radius-sm)', fontSize: 13, transition: 'var(--transition)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}
       onMouseEnter={e => { e.currentTarget.style.background = danger ? 'rgba(239,68,68,0.15)' : 'var(--bg-hover)'; e.currentTarget.style.color = danger ? 'var(--danger)' : 'var(--text-primary)'; }}
       onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = ''; }}
     >

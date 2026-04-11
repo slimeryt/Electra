@@ -27,6 +27,18 @@
   }
 }
 
+/* Snappier taps on mobile; subtle flash instead of default gray blob */
+button,
+a[href],
+[role='button'] {
+  touch-action: manipulation;
+}
+button,
+a[href],
+.mobile-app-bar__icon-btn {
+  -webkit-tap-highlight-color: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
 html, body, #root {
   height: 100%;
   width: 100%;
