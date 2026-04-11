@@ -65,6 +65,49 @@
       color: #c4c8f5;
     }
     .note strong { color: #fff; }
+    .which-url {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 20px;
+      margin-bottom: 32px;
+    }
+    .which-url h2 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: #fff;
+    }
+    .which-url p { color: var(--muted); font-size: 14px; margin-bottom: 12px; line-height: 1.65; }
+    .which-url p:last-child { margin-bottom: 0; }
+    .which-url ul { margin: 12px 0 12px 18px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+    .which-url li { margin-bottom: 6px; }
+    .which-url .ok {
+      margin-top: 16px;
+      padding: 12px 14px;
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.28);
+      border-radius: 10px;
+      color: #86efac;
+      font-size: 13px;
+    }
+    .which-url .bad {
+      margin-top: 12px;
+      padding: 12px 14px;
+      background: rgba(240,71,71,0.08);
+      border: 1px solid rgba(240,71,71,0.25);
+      border-radius: 10px;
+      color: #fca5a5;
+      font-size: 13px;
+    }
+    .which-url code {
+      background: rgba(88,101,242,0.15);
+      color: #a5adff;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
     ol {
       list-style: none;
       counter-reset: step;
@@ -127,8 +170,20 @@
   <h1>Use Electra on iPhone &amp; iPad</h1>
   <p class="lead">Apple does not allow installing arbitrary apps outside the App Store the same way Android does. You can still run Electra like a native app by adding the web app to your Home Screen from <strong>Safari</strong>.</p>
 
+  <section class="which-url" id="which-url">
+    <h2>Which URL should I use?</h2>
+    <p>Use the address of the <strong>Electra web app</strong> — the site that shows the real app: <strong>Login / Register</strong>, then servers and channels (purple UI). That is usually <strong>not</strong> the same link as this marketing page or a “download only” site.</p>
+    <ul>
+      <li><strong>Correct:</strong> an <code>https://</code> link where you can sign in and use chat like on a PC browser.</li>
+      <li><strong>Not the API URL:</strong> developers configure something like <code>https://…railway.app</code> for the <em>backend</em> only. You do <em>not</em> paste that into Safari unless your host also serves the app there.</li>
+      <li><strong>Not this brochure site:</strong> pages that only describe Electra or offer Windows/Android downloads are not the app — adding those to Home Screen will not give you chat.</li>
+    </ul>
+    <div class="ok"><strong>Quick check:</strong> open the link in Safari first. If you see username/password (or register) and the app layout, use <em>that</em> address for Add to Home Screen.</div>
+    <div class="bad"><strong>Don’t have a web app link?</strong> Whoever runs your server must deploy the built frontend (<code>npm run build</code> in the Electra frontend) to HTTPS — for example Railway, Vercel, Netlify, or nginx — and share that public URL with you.</div>
+  </section>
+
   <div class="note">
-    <strong>You need:</strong> the HTTPS URL where Electra’s web app is hosted (for example your own deployment or your community’s server). Ask your server admin if you are not sure what link to use.
+    <strong>HTTPS required:</strong> iOS needs a secure (<code>https://</code>) address. If you only have <code>http://</code>, Safari may block features or the shortcut may behave poorly.
   </div>
 
   <ol>
@@ -137,8 +192,8 @@
       <p>On iOS you must use <strong>Safari</strong> (not Chrome or in-app browsers) for the best “Add to Home Screen” experience.</p>
     </li>
     <li>
-      <strong>Go to your Electra URL</strong>
-      <p>Type or paste your site address in the address bar and sign in as usual. Wait until the app has fully loaded.</p>
+      <strong>Open your web app URL</strong>
+      <p>Type or paste the <strong>Electra app</strong> address (the one that shows login — see <a href="#which-url">Which URL?</a> above). Sign in and wait until the main app has fully loaded.</p>
     </li>
     <li>
       <strong>Open the Share menu</strong>
