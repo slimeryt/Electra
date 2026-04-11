@@ -39,3 +39,8 @@ export const isElectron =
 export const bridge: ElectraBridge | null = isElectron ? window.electraBridge! : null;
 
 export const platform = isElectron ? bridge!.platform : 'web';
+
+// Injected at build time by vite.config.ts — shows 0.x.y to users while
+// the internal package.json version increments monotonically for electron-updater.
+declare const __APP_VERSION__: string;
+export const APP_VERSION: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';

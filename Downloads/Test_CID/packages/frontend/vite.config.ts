@@ -1,10 +1,20 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { readFileSync } from 'fs';
+
+const desktopPkg = JSON.parse(readFileSync(path.resolve(__dirname, '../desktop/package.json'), 'utf8'));
+// Build version (e.g. "1.7.0") — auto-updater needs it to increase monotonically.
+// Display version strips the leading major and uses 0.x.y so the UI reflects alpha status.
+const BUILD_VERSION = desktopPkg.version as string;
+const DISPLAY_VERSION = BUILD_VERSION.replace(/^\d+\./, '0.');
 
 export default defineConfig({
   base: './',
   plugins: [react()],
+  define: {
+    __APP_VERSION__: JSON.stringify(DISPLAY_VERSION),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

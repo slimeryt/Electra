@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Minus, Square, Copy, X, RefreshCw } from 'lucide-react';
-import { bridge, platform } from '../../env';
+import { bridge, platform, APP_VERSION } from '../../env';
+
+/** Convert internal build version (1.x.y) to display version (0.x.y). */
+function toDisplay(v: string) {
+  return v.replace(/^\d+\./, '0.');
+}
 
 export function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -90,6 +95,9 @@ export function TitleBar() {
         <span style={{ fontSize: 12, color: 'var(--text-muted)', letterSpacing: '0.01em' }}>
           Electra
         </span>
+        <span style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.5 }}>
+          v{APP_VERSION}
+        </span>
       </div>
 
       {/* Right: update button + window controls */}
@@ -100,7 +108,7 @@ export function TitleBar() {
             onMouseLeave={() => setIsHovered(null)}
             onClick={handleInstallUpdate}
             disabled={isInstalling}
-            title={`Update to v${updateVersion} — click to install`}
+            title={`Update to v${toDisplay(updateVersion)} — click to install`}
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
               height: 22, padding: '0 10px', marginRight: 8,
@@ -115,7 +123,7 @@ export function TitleBar() {
             } as React.CSSProperties}
           >
             <RefreshCw size={11} style={{ animation: isInstalling ? 'spin 0.8s linear infinite' : 'none' }} />
-            {isInstalling ? 'Installing…' : `Update v${updateVersion}`}
+            {isInstalling ? 'Installing…' : `Update v${toDisplay(updateVersion)}`}
           </button>
         )}
         {btn('min',   () => bridge!.minimizeWindow(), <Minus size={12} />)}
