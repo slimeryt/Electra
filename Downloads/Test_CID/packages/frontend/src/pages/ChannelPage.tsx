@@ -58,9 +58,9 @@ export default function ChannelPage() {
     };
   }, [channelId]);
 
-  const handleSend = (content: string, fileIds: string[]): Promise<void> => {
+  const handleSend = (content: string, fileIds: string[], replyToId?: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-      getSocket().emit('send_message', { channel_id: channelId, content, file_ids: fileIds }, (res: any) => {
+      getSocket().emit('send_message', { channel_id: channelId, content, file_ids: fileIds, reply_to_id: replyToId }, (res: any) => {
         if (res?.ok) resolve();
         else reject(new Error(res?.error || 'Failed to send'));
       });

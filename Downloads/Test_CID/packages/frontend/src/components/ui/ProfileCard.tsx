@@ -38,23 +38,24 @@ function BadgeChip({ meta }: { meta: { label: string; icon: React.ReactNode; col
       onMouseLeave={() => setHovered(false)}
       title={meta.label}
       style={{
-        display: 'flex', alignItems: 'center', gap: hovered ? 4 : 0,
-        padding: hovered ? '3px 8px' : '3px 6px',
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        padding: '3px 7px',
         borderRadius: 99,
         background: `${meta.color}22`,
         border: `1px solid ${meta.color}55`,
         color: meta.color, fontSize: 11, fontWeight: 600,
         overflow: 'hidden',
-        maxWidth: hovered ? 120 : 24,
-        transition: 'max-width 200ms ease, padding 200ms ease, gap 200ms ease',
+        maxWidth: hovered ? 150 : 28,
+        transition: 'max-width 220ms ease',
         cursor: 'default',
         whiteSpace: 'nowrap',
+        flexShrink: 0,
       }}
     >
-      {meta.icon}
+      <span style={{ display: 'flex', flexShrink: 0 }}>{meta.icon}</span>
       <span style={{
         opacity: hovered ? 1 : 0,
-        transition: 'opacity 150ms ease',
+        transition: 'opacity 120ms ease',
         pointerEvents: 'none',
       }}>
         {meta.label}

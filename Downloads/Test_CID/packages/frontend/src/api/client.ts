@@ -57,10 +57,15 @@ client.interceptors.response.use(
 
         original.headers.Authorization = `Bearer ${data.accessToken}`;
         return client(original);
-      } catch {
+      } catch (refreshError) {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        if (isElectron) void clearPersistedAuth();
+        // Only wipe the persisted session when the server explicitly rejects the
+        // refresh token (401/403). A network error means the backend is temporarily
+        // unreachable — preserve the session.store so the next startup can recover.
+        const isAuthRejected = axios.isAxiosError(refreshError) &&
+          (refreshError.response?.status === 401 || refreshError.response?.status === 403);
+        if (isElectron && isAuthRejected) void clearPersistedAuth();
         // Use hash-less navigation so the SPA handles routing correctly in Electron
         window.dispatchEvent(new CustomEvent('auth:logout'));
       } finally {

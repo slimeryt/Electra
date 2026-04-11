@@ -15,7 +15,7 @@ export function registerChatHandlers(io: Server, socket: Socket) {
     socket.leave(`channel:${data.channel_id}`);
   });
 
-  socket.on('send_message', (data: { channel_id: string; content?: string; file_ids?: string[] }, callback?: Function) => {
+  socket.on('send_message', (data: { channel_id: string; content?: string; file_ids?: string[]; reply_to_id?: string }, callback?: Function) => {
     try {
       // Verify user is member of the server this channel belongs to
       const channel = db.prepare(
@@ -24,7 +24,7 @@ export function registerChatHandlers(io: Server, socket: Socket) {
 
       if (!channel) return callback?.({ error: 'Forbidden' });
 
-      const msg = messageService.createMessage(data.channel_id, userId, data.content, data.file_ids || []);
+      const msg = messageService.createMessage(data.channel_id, userId, data.content, data.file_ids || [], data.reply_to_id);
       io.to(`channel:${data.channel_id}`).emit('message_create', msg);
 
       // Emit mention notifications

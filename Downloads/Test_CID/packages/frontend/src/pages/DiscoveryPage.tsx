@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { BadgeCheck } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Spinner } from '../components/ui/Spinner';
@@ -16,6 +17,7 @@ interface PublicServer {
   member_count: number;
   invite_code: string;
   owner_id: string;
+  verified?: number;
 }
 
 function hashColor(name = '') {
@@ -77,8 +79,11 @@ function ServerCard({ server, isMember, onJoin, joining }: {
 
       {/* Body */}
       <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {server.name}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden' }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {server.name}
+          </div>
+          {!!server.verified && <BadgeCheck size={15} style={{ color: '#3b82f6', flexShrink: 0 }} />}
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-muted)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, lineHeight: 1.4, minHeight: 36 }}>
           {server.description || 'No description provided.'}

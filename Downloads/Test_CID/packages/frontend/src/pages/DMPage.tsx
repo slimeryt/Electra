@@ -6,8 +6,8 @@ import { DMHeader } from '../components/dm/DMHeader';
 import { useDmMessages } from '../hooks/useMessages';
 import { dmsApi } from '../api/dms';
 import { useAuthStore } from '../store/authStore';
-import { User } from '../types/models';
 import { getSocket } from '../socket/client';
+import type { DirectMessage } from '../types/models';
 
 interface TypingUser {
   user_id: string;
@@ -18,32 +18,24 @@ export default function DMPage() {
   const { dmId } = useParams<{ dmId: string }>();
   const { user } = useAuthStore();
   const { messages, isLoading, hasMore, loadMessages, loadMore } = useDmMessages(dmId!);
-  const [otherUser, setOtherUser] = useState<User | null>(null);
+  const [dm, setDm] = useState<DirectMessage | null>(null);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
 
   useEffect(() => {
     if (!dmId) return;
     loadMessages();
 
-    // Load DM info to get other participant
     dmsApi.list().then(dms => {
-      const dm = dms.find(d => d.id === dmId);
-      if (dm) {
-        const other = dm.participants?.find(p => p.id !== user?.id);
-        if (other) setOtherUser(other as User);
-      }
+      const found = dms.find((d: any) => d.id === dmId);
+      if (found) setDm(found);
     }).catch(() => {});
 
     const socket = getSocket();
 
     const onDmTypingStart = (data: any) => {
       if (data.dm_id !== dmId) return;
-      setTypingUsers(prev => {
-        if (prev.some(u => u.user_id === data.user_id)) return prev;
-        return [...prev, { user_id: data.user_id, display_name: data.display_name }];
-      });
+      setTypingUsers(prev => prev.some(u => u.user_id === data.user_id) ? prev : [...prev, { user_id: data.user_id, display_name: data.display_name }]);
     };
-
     const onDmTypingStop = (data: any) => {
       if (data.dm_id !== dmId) return;
       setTypingUsers(prev => prev.filter(u => u.user_id !== data.user_id));
@@ -51,25 +43,30 @@ export default function DMPage() {
 
     socket.on('dm_typing_start', onDmTypingStart);
     socket.on('dm_typing_stop', onDmTypingStop);
-
     return () => {
       socket.off('dm_typing_start', onDmTypingStart);
       socket.off('dm_typing_stop', onDmTypingStop);
     };
   }, [dmId]);
 
-  const handleSend = (content: string, fileIds: string[]): Promise<void> => {
+  const handleSend = (content: string, fileIds: string[], replyToId?: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-      getSocket().emit('send_dm', { dm_id: dmId, content, file_ids: fileIds }, (res: any) => {
+      getSocket().emit('send_dm', { dm_id: dmId, content, file_ids: fileIds, reply_to_id: replyToId }, (res: any) => {
         if (res?.ok) resolve();
         else reject(new Error(res?.error || 'Failed to send'));
       });
     });
   };
 
+  const isGroup = !!dm?.is_group;
+  const otherUser = !isGroup ? (dm?.participants?.find(p => p.id !== user?.id) ?? null) : null;
+  const placeholder = isGroup
+    ? `Message ${dm?.name || 'Group'}`
+    : `Message ${otherUser?.display_name || otherUser?.username || ''}`;
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <DMHeader user={otherUser} />
+      <DMHeader dm={dm} currentUserId={user?.id} />
       <MessageList
         messages={messages}
         isLoading={isLoading}
@@ -79,7 +76,7 @@ export default function DMPage() {
         isDm
       />
       <MessageInput
-        placeholder={`Message ${otherUser?.display_name || otherUser?.username || ''}`}
+        placeholder={placeholder}
         onSend={handleSend}
         dmId={dmId}
       />

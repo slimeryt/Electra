@@ -120,7 +120,12 @@ async function runMandatoryUpdateGate(): Promise<boolean> {
 
     let result;
     try {
-      result = await autoUpdater.checkForUpdates();
+      // Race against an 8-second timeout so a slow/unreachable GitHub API
+      // doesn't hold up the splash screen indefinitely.
+      result = await Promise.race([
+        autoUpdater.checkForUpdates(),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 8_000)),
+      ]);
     } catch (err) {
       autoUpdater.off('download-progress', onProgress);
       (autoUpdater.logger as any)?.error('checkForUpdates failed:', err);

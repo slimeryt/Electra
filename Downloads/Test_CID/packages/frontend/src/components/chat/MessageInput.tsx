@@ -7,11 +7,13 @@ import {
   DragEvent,
   ChangeEvent,
 } from 'react';
+import { X, CornerUpLeft } from 'lucide-react';
 import { filesApi } from '../../api/files';
 import { getSocket } from '../../socket/client';
 import { Spinner } from '../ui/Spinner';
 import { Avatar } from '../ui/Avatar';
 import { serversApi } from '../../api/servers';
+import { useReplyStore } from '../../store/replyStore';
 
 interface PendingFile {
   file: File;
@@ -29,7 +31,7 @@ interface MemberSuggestion {
 
 interface MessageInputProps {
   placeholder?: string;
-  onSend: (content: string, fileIds: string[]) => Promise<void>;
+  onSend: (content: string, fileIds: string[], replyToId?: string) => Promise<void>;
   onTyping?: () => void;
   channelId?: string;
   dmId?: string;
@@ -53,6 +55,7 @@ export function MessageInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { replyTo, close: closeReply } = useReplyStore();
 
   // Fetch members once when serverId is available
   useEffect(() => {
@@ -130,12 +133,14 @@ export function MessageInput({
     const fileIds = pendingFiles.filter(f => f.fileId).map(f => f.fileId!);
     if (!text && fileIds.length === 0) return;
     const savedContent = text;
+    const savedReplyId = replyTo?.id;
     setContent('');
     setPendingFiles([]);
     setMentionQuery(null);
+    closeReply();
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     try {
-      await onSend(savedContent, fileIds);
+      await onSend(savedContent, fileIds, savedReplyId);
     } catch {
       setContent(savedContent);
     }
@@ -228,6 +233,30 @@ export function MessageInput({
               <button onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))} style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>✕</button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Reply banner */}
+      {replyTo && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '6px 12px', marginBottom: 4,
+          background: 'var(--bg-overlay)', borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border)', fontSize: 12, color: 'var(--text-secondary)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+            <CornerUpLeft size={12} style={{ flexShrink: 0, color: 'var(--accent)' }} />
+            <span style={{ color: 'var(--text-muted)' }}>Replying to</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+              {(replyTo as any).author?.display_name || (replyTo as any).author?.username || 'Unknown'}
+            </span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.7 }}>
+              — {replyTo.content || '(attachment)'}
+            </span>
+          </div>
+          <button onClick={closeReply} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '2px', display: 'flex', flexShrink: 0 }}>
+            <X size={14} />
+          </button>
         </div>
       )}
 

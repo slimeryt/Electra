@@ -59,7 +59,7 @@ export function createServer(name: string, description: string | undefined, owne
 
 export function getPublicServers(search?: string) {
   const base = `
-    SELECT s.id, s.name, s.description, s.icon_url, s.invite_code, s.owner_id,
+    SELECT s.id, s.name, s.description, s.icon_url, s.invite_code, s.owner_id, s.verified,
       (SELECT COUNT(*) FROM server_members WHERE server_id = s.id) as member_count
     FROM servers s
     WHERE s.is_public = 1

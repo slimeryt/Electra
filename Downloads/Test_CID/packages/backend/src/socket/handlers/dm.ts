@@ -15,15 +15,20 @@ export function registerDmHandlers(io: Server, socket: Socket) {
     socket.join(`dm:${dmId}`);
   }
 
-  socket.on('send_dm', (data: { dm_id: string; content?: string; file_ids?: string[] }, callback?: Function) => {
+  socket.on('join_dm_room', (data: { dm_id: string }) => {
+    const access = db.prepare('SELECT 1 FROM dm_participants WHERE dm_id = ? AND user_id = ?').get(data.dm_id, userId);
+    if (access) socket.join(`dm:${data.dm_id}`);
+  });
+
+  socket.on('send_dm', (data: { dm_id: string; content?: string; file_ids?: string[]; reply_to_id?: string }, callback?: Function) => {
     try {
       const access = db.prepare('SELECT 1 FROM dm_participants WHERE dm_id = ? AND user_id = ?').get(data.dm_id, userId);
       if (!access) return callback?.({ error: 'Forbidden' });
 
       const msg = db.transaction(() => {
         const m = db.prepare(
-          'INSERT INTO dm_messages (dm_id, author_id, content, type) VALUES (?, ?, ?, ?) RETURNING *'
-        ).get(data.dm_id, userId, data.content || null, (data.file_ids?.length ?? 0) > 0 ? 'file' : 'text') as any;
+          'INSERT INTO dm_messages (dm_id, author_id, content, type, reply_to_id) VALUES (?, ?, ?, ?, ?) RETURNING *'
+        ).get(data.dm_id, userId, data.content || null, (data.file_ids?.length ?? 0) > 0 ? 'file' : 'text', data.reply_to_id || null) as any;
 
         for (const fileId of data.file_ids ?? []) {
           db.prepare('INSERT INTO dm_attachments (message_id, file_id) VALUES (?, ?)').run(m.id, fileId);
@@ -31,7 +36,14 @@ export function registerDmHandlers(io: Server, socket: Socket) {
 
         const author = db.prepare('SELECT id, username, display_name, avatar_url FROM users WHERE id = ?').get(userId);
         const attachments = db.prepare(`SELECT f.* FROM dm_attachments a JOIN files f ON f.id = a.file_id WHERE a.message_id = ?`).all(m.id);
-        return { ...m, author, attachments };
+
+        let reply_to = null;
+        if (data.reply_to_id) {
+          const ref = db.prepare('SELECT * FROM dm_messages WHERE id = ?').get(data.reply_to_id) as any;
+          if (ref) reply_to = { id: ref.id, content: ref.content, author: db.prepare('SELECT id, username, display_name, avatar_url FROM users WHERE id = ?').get(ref.author_id) };
+        }
+
+        return { ...m, author, attachments, reply_to };
       })();
 
       // Join new DM room if needed
