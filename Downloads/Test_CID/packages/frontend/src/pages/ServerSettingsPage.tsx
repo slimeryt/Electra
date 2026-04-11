@@ -13,12 +13,6 @@ import { Avatar } from '../components/ui/Avatar';
 import { ServerMemberWithRoles, ServerRole, Channel } from '../types/models';
 import { RolesEditor } from '../components/server/RolesEditor';
 import { BotsEditor } from '../components/server/BotsEditor';
-import { isElectron } from '../env';
-
-const BASE = isElectron
-  ? (import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001')
-  : '';
-
 type Tab = 'overview' | 'members' | 'roles' | 'bots' | 'channels' | 'invites' | 'danger';
 
 const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [

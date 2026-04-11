@@ -16,6 +16,16 @@ html, body, #root {
   flex-direction: column;
 }
 
+/* Standalone PWA / iOS home-screen shortcut — notch & home indicator */
+@supports (padding: env(safe-area-inset-bottom)) {
+  #root {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
 /* ─── App shell (MainLayout) — scales with window / viewport ───────────────── */
 .app-shell {
   display: flex;
@@ -71,8 +81,9 @@ html, body, #root {
   min-width: 0;
 }
 
+/* Tablet / narrow desktop — not the dedicated phone drawer layout */
 @media (max-width: 960px) {
-  .app-shell {
+  .app-shell:not(.app-shell--phone):not(.app-shell--phone-fs) {
     flex-wrap: wrap;
     align-content: flex-start;
     height: auto;
@@ -82,25 +93,25 @@ html, body, #root {
     overflow-x: hidden;
   }
 
-  .app-shell-rail {
+  .app-shell:not(.app-shell--phone):not(.app-shell--phone-fs) .app-shell-rail {
     order: 0;
   }
 
-  .app-shell-channels {
+  .app-shell:not(.app-shell--phone):not(.app-shell--phone-fs) .app-shell-channels {
     order: 1;
     flex: 1 1 auto;
     max-width: min(240px, 100%);
     min-width: min(200px, 45vw);
   }
 
-  .app-shell-members {
+  .app-shell:not(.app-shell--phone):not(.app-shell--phone-fs) .app-shell-members {
     order: 2;
     flex: 1 1 auto;
     max-width: min(224px, 100%);
     min-width: min(180px, 42vw);
   }
 
-  .app-shell-main {
+  .app-shell:not(.app-shell--phone):not(.app-shell--phone-fs) .app-shell-main {
     order: 3;
     flex: 1 1 100%;
     min-height: min(520px, 62vh);
@@ -108,16 +119,217 @@ html, body, #root {
 }
 
 @media (max-width: 560px) {
-  .app-shell-channels,
-  .app-shell-members {
+  .app-shell:not(.app-shell--phone):not(.app-shell--phone-fs) .app-shell-channels,
+  .app-shell:not(.app-shell--phone):not(.app-shell--phone-fs) .app-shell-members {
     flex: 1 1 100%;
     max-width: 100%;
     min-width: 0;
   }
 
-  .app-shell-main {
+  .app-shell:not(.app-shell--phone):not(.app-shell--phone-fs) .app-shell-main {
     min-height: min(480px, 55vh);
   }
+}
+
+/* ─── Phone layout (≤768px): slide-out nav + top app bar ───────────────────── */
+.app-shell--phone {
+  flex-direction: column;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  max-height: 100dvh;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.app-shell--phone .app-shell-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding-top: calc(52px + env(safe-area-inset-top, 0px));
+  border-radius: 0;
+}
+
+.app-shell--phone-fs {
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  padding: 8px;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.app-shell--phone-fs .app-shell-main {
+  flex: 1;
+  min-height: 0;
+  border-radius: var(--radius-lg);
+}
+
+.mobile-nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 280;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav-drawer--left {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 300;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  max-width: min(92vw, 360px);
+  width: min(92vw, 360px);
+  transform: translateX(-105%);
+  transition: transform 0.22s ease;
+  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.4);
+  background: var(--bg-base);
+}
+
+.mobile-nav-drawer--left.is-open {
+  transform: translateX(0);
+}
+
+.mobile-nav-drawer--left .app-shell-rail {
+  flex-shrink: 0;
+  width: 72px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mobile-nav-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.mobile-nav-rail > * {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+}
+
+.mobile-nav-drawer--left .app-shell-channels {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mobile-nav-drawer--right {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 300;
+  width: min(90vw, 300px);
+  max-width: 100%;
+  transform: translateX(105%);
+  transition: transform 0.22s ease;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
+  background: var(--bg-elevated);
+}
+
+.mobile-nav-drawer--right.is-open {
+  transform: translateX(0);
+}
+
+.mobile-nav-drawer__members-inner {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mobile-nav-drawer__members-inner > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.mobile-app-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: calc(52px + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 12px 0 10px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+.mobile-app-bar__icon-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-app-bar__icon-btn:active {
+  background: var(--bg-hover);
+}
+
+.mobile-app-bar__titles {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+}
+
+.mobile-app-bar__title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-app-bar__subtitle {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-app-bar__icon-spacer {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
 }
 
 /* User panel: don’t overflow narrow viewports */

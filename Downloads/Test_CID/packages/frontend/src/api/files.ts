@@ -1,5 +1,6 @@
 import client from './client';
 import { FileAttachment } from '../types/models';
+import { getBackendOrigin } from '../lib/backendOrigin';
 
 export const filesApi = {
   upload: (file: File, onProgress?: (pct: number) => void) => {
@@ -12,7 +13,10 @@ export const filesApi = {
     }).then(r => r.data);
   },
 
-  getUrl: (fileId: string) => `/api/files/${fileId}`,
+  getUrl: (fileId: string) => {
+    const o = getBackendOrigin();
+    return o ? `${o}/api/files/${fileId}` : `/api/files/${fileId}`;
+  },
 
   delete: (fileId: string) =>
     client.delete(`/files/${fileId}`).then(r => r.data),

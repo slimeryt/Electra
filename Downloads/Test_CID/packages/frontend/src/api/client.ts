@@ -1,10 +1,9 @@
 import axios from 'axios';
 import { isElectron } from '../env';
 import { clearPersistedAuth, persistAuthTokens } from '../lib/electronAuthPersist';
+import { getBackendOrigin } from '../lib/backendOrigin';
 
-const BASE = isElectron
-  ? (import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001')
-  : '';
+const BASE = getBackendOrigin();
 
 const client = axios.create({
   baseURL: `${BASE}/api`,

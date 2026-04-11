@@ -1,0 +1,27 @@
+# slimeryt.github.io/Electra serves the gh-pages branch (Settings → Pages).
+# Source of truth for copy is Downloads/Test_CID/docs on master.
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'Downloads/Test_CID/docs/**'
+      - 'Downloads/Test_CID/.github/workflows/deploy-pages.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish docs site to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: Downloads/Test_CID/docs
+          force_orphan: false
