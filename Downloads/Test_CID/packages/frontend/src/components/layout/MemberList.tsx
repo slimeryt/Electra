@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { MessageSquare, Clipboard, UserMinus, Shield, Check, User } from 'lucide-react';
@@ -32,6 +32,23 @@ export function MemberList({ serverId }: { serverId: string }) {
     serversApi.members(serverId).then(setMembers).catch(() => {});
     rolesApi.list(serverId).then(r => setRoles(r.filter(r => !r.is_default))).catch(() => {});
   }, [serverId]);
+
+  // Clamp role picker inside the viewport after it renders
+  useLayoutEffect(() => {
+    if (!rolePickerPos || !rolePickerRef.current) return;
+    const el = rolePickerRef.current;
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let { x, y } = rolePickerPos;
+    if (x + rect.width > vw - 8) x = vw - rect.width - 8;
+    if (y + rect.height > vh - 8) y = vh - rect.height - 8;
+    if (x < 8) x = 8;
+    if (y < 8) y = 8;
+    if (x !== rolePickerPos.x || y !== rolePickerPos.y) {
+      setRolePickerPos({ x, y });
+    }
+  }, [rolePickerPos]);
 
   // Close role picker on outside click
   useEffect(() => {
