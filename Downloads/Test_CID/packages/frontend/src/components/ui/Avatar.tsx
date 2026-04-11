@@ -12,6 +12,7 @@ interface AvatarProps {
   size?: number;
   showStatus?: boolean;
   onClick?: (e: React.MouseEvent) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 const statusColors: Record<string, string> = {
@@ -33,7 +34,7 @@ function hashColor(name = ''): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export function Avatar({ user, size = 36, showStatus = false, onClick }: AvatarProps) {
+export function Avatar({ user, size = 36, showStatus = false, onClick, onContextMenu }: AvatarProps) {
   const name = user?.display_name || user?.username || '';
   const bg = hashColor(name);
   const [imgError, setImgError] = useState(false);
@@ -47,6 +48,7 @@ export function Avatar({ user, size = 36, showStatus = false, onClick }: AvatarP
     <div
       style={{ position: 'relative', width: size, height: size, flexShrink: 0, cursor: onClick ? 'pointer' : undefined }}
       onClick={onClick}
+      onContextMenu={onContextMenu}
     >
       {showImage ? (
         <img

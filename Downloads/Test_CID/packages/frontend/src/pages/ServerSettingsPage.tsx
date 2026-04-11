@@ -323,7 +323,7 @@ function MembersTab({ serverId }: { serverId: string }) {
               </span>
 
               {/* Role picker */}
-              {canManageRoles && member.role !== 'owner' && assignableRoles.length > 0 && (
+              {canManageRoles && assignableRoles.length > 0 && (
                 <div style={{ position: 'relative' }} ref={isPickerOpen ? pickerRef : undefined}>
                   <button
                     onClick={() => setOpenPickerId(isPickerOpen ? null : member.id)}

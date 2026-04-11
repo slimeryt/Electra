@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pencil, Trash2, Clipboard, Link, CornerUpLeft } from 'lucide-react';
+import { Pencil, Trash2, Clipboard, Link, CornerUpLeft, MessageSquare, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Avatar } from '../ui/Avatar';
 import { FilePreview } from './FilePreview';
 import { MarkdownContent } from './MarkdownContent';
@@ -49,10 +50,32 @@ export function MessageItem({ message, isGrouped = false, isDm = false }: Messag
   const { user: currentUser } = useAuthStore();
   const openProfileCard = useProfileCardStore(s => s.open);
   const openReply = useReplyStore(s => s.open);
+  const navigate = useNavigate();
 
   const author = (message as any).author;
   const isOwn = author?.id === currentUser?.id;
   const replyTo = (message as any).reply_to;
+
+  const handleAuthorContextMenu = (e: React.MouseEvent) => {
+    if (!author) return;
+    e.preventDefault();
+    e.stopPropagation();
+    show([
+      { label: 'View Profile', icon: <User size={14} />, onClick: () => openProfileCard(author.id, e.clientX, e.clientY) },
+      ...(!isOwn ? [{
+        label: 'Send Message',
+        icon: <MessageSquare size={14} />,
+        onClick: async () => {
+          try {
+            const dm = await dmsApi.create(author.id);
+            navigate(`/app/dm/${dm.id}`);
+          } catch {}
+        },
+      }] : []),
+      { divider: true, label: '', onClick: () => {} },
+      { label: 'Copy User ID', icon: <Clipboard size={14} />, onClick: () => navigator.clipboard.writeText(author.id) },
+    ], e.clientX, e.clientY);
+  };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -130,6 +153,7 @@ export function MessageItem({ message, isGrouped = false, isDm = false }: Messag
               user={author}
               size={36}
               onClick={author ? (e) => openProfileCard(author.id, e.clientX, e.clientY) : undefined}
+              onContextMenu={author ? handleAuthorContextMenu : undefined}
             />
           ) : hovered ? (
             <span style={{ fontSize: 10, color: 'var(--text-muted)', userSelect: 'none', lineHeight: 1 }}>
@@ -142,7 +166,10 @@ export function MessageItem({ message, isGrouped = false, isDm = false }: Messag
           {/* Header */}
           {!isGrouped && (
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>
+              <span
+                onContextMenu={author ? handleAuthorContextMenu : undefined}
+                style={{ fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', cursor: author ? 'pointer' : 'default' }}
+              >
                 {author?.display_name || 'Unknown'}
               </span>
               {author?.is_bot === 1 && (

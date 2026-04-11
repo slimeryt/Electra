@@ -29,23 +29,64 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
   const navigate = useNavigate();
   const { show } = useContextMenu();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createModalCategory, setCreateModalCategory] = useState<string | undefined>(undefined);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [localChannels, setLocalChannels] = useState<Channel[]>([]);
 
   const channels = channelsByServer[serverId] || [];
   const server = servers.find(s => s.id === serverId);
   const isAdminOrOwner = server?.owner_id === user?.id;
 
+  // Keep a local copy for drag reordering
+  useEffect(() => {
+    setLocalChannels(channels);
+  }, [channels]);
+
   useEffect(() => {
     if (serverId) fetchChannels(serverId);
   }, [serverId, fetchChannels]);
 
-  // Group channels by category
-  const categories = channels.reduce<Record<string, Channel[]>>((acc, ch) => {
+  // Group channels by category (use local copy for drag responsiveness)
+  const categories = localChannels.reduce<Record<string, Channel[]>>((acc, ch) => {
     const cat = (ch as any).category || 'Text Channels';
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(ch);
     return acc;
   }, {});
+
+  const handleDragStart = (channelId: string) => {
+    setDraggedId(channelId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedId || draggedId === targetId) return;
+    setLocalChannels(prev => {
+      const arr = [...prev];
+      const fromIdx = arr.findIndex(c => c.id === draggedId);
+      const toIdx = arr.findIndex(c => c.id === targetId);
+      if (fromIdx === -1 || toIdx === -1) return prev;
+      // Only allow reorder within same category
+      const fromCat = (arr[fromIdx] as any).category || 'Text Channels';
+      const toCat = (arr[toIdx] as any).category || 'Text Channels';
+      if (fromCat !== toCat) return prev;
+      const [item] = arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, item);
+      return arr;
+    });
+  };
+
+  const handleDrop = async (targetId: string) => {
+    if (!draggedId) return;
+    setDraggedId(null);
+    // Persist new positions to backend
+    const cat = (localChannels.find(c => c.id === draggedId) as any)?.category || 'Text Channels';
+    const catChannels = localChannels.filter(c => ((c as any).category || 'Text Channels') === cat);
+    await Promise.all(
+      catChannels.map((ch, i) => channelsApi.update(ch.id, { position: i }))
+    );
+  };
 
   const handleChannelContextMenu = (e: React.MouseEvent, channel: Channel) => {
     e.preventDefault();
@@ -159,7 +200,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
               </span>
               {isAdminOrOwner && (
                 <span
-                  onClick={e => { e.stopPropagation(); setShowCreateModal(true); }}
+                  onClick={e => { e.stopPropagation(); setCreateModalCategory(category); setShowCreateModal(true); }}
                   style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0 2px', opacity: 0.6 }}
                   title="Create Channel"
                 >
@@ -171,8 +212,17 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
             {/* Channel rows */}
             {!collapsed[category] && chs.map(channel => {
               const isActive = activeChannelId === channel.id;
+              const isDragging = draggedId === channel.id;
               return (
-                <div key={channel.id} style={{ margin: '1px 6px' }}>
+                <div
+                  key={channel.id}
+                  draggable={isAdminOrOwner}
+                  onDragStart={() => handleDragStart(channel.id)}
+                  onDragOver={e => handleDragOver(e, channel.id)}
+                  onDrop={() => handleDrop(channel.id)}
+                  onDragEnd={() => setDraggedId(null)}
+                  style={{ margin: '1px 6px', opacity: isDragging ? 0.4 : 1, transition: 'opacity 120ms' }}
+                >
                   <div
                     onClick={() => handleChannelClick(channel)}
                     onContextMenu={(e) => handleChannelContextMenu(e, channel)}
@@ -247,8 +297,9 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
       {isAdminOrOwner && (
         <ChannelCreateModal
           isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => { setShowCreateModal(false); setCreateModalCategory(undefined); }}
           serverId={serverId}
+          defaultCategory={createModalCategory}
         />
       )}
     </div>

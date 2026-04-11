@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -11,18 +11,26 @@ interface ChannelCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   serverId: string;
+  defaultCategory?: string;
 }
 
-export function ChannelCreateModal({ isOpen, onClose, serverId }: ChannelCreateModalProps) {
+export function ChannelCreateModal({ isOpen, onClose, serverId, defaultCategory }: ChannelCreateModalProps) {
   const [name, setName] = useState('');
   const [type, setType] = useState<ChannelType>('text');
+  const [category, setCategory] = useState(defaultCategory || 'Text Channels');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { addChannel } = useChannelStore();
 
+  // Sync category when defaultCategory changes (modal re-opens for different category)
+  useEffect(() => {
+    if (isOpen) setCategory(defaultCategory || 'Text Channels');
+  }, [isOpen, defaultCategory]);
+
   const handleClose = () => {
     setName('');
     setError('');
+    setCategory(defaultCategory || 'Text Channels');
     onClose();
   };
 
@@ -34,6 +42,7 @@ export function ChannelCreateModal({ isOpen, onClose, serverId }: ChannelCreateM
       const channel = await serversApi.createChannel(serverId, {
         name: name.trim().toLowerCase().replace(/\s+/g, '-'),
         type,
+        category: category.trim() || 'Text Channels',
       });
       addChannel(channel);
       handleClose();
@@ -100,6 +109,13 @@ export function ChannelCreateModal({ isOpen, onClose, serverId }: ChannelCreateM
           placeholder={type === 'text' ? 'general' : 'General Voice'}
           onKeyDown={e => e.key === 'Enter' && handleCreate()}
           autoFocus
+        />
+
+        <Input
+          label="Category"
+          value={category}
+          onChange={e => setCategory(e.target.value)}
+          placeholder="Text Channels"
         />
 
         {error && (
