@@ -1,35 +1,30 @@
-# Electra web app (Vite SPA) for a second Railway service.
+# Electra web app (Vite SPA) for Railway.
 #
-# Railway — use paths relative to the service root. Do NOT use a leading "/".
+# Default matches Railway when Root Directory is EMPTY (repo root = Electra):
+#   Dockerfile path: Downloads/Test_CID/Dockerfile.railway-frontend
 #
-# Recommended (one place defines the build root):
-#   Settings → Root Directory:     Downloads/Test_CID
-#   Settings → Dockerfile path:      Dockerfile.railway-frontend
-#
-# Alternative (repo root as service root — leave Root Directory empty):
-#   Settings → Root Directory:     (empty)
-#   Settings → Dockerfile path:    Downloads/Test_CID/Dockerfile.railway-frontend
-#
-# Wrong (breaks the build):  /Downloads/Test_CID/Dockerfile.railway-frontend
-#
-# Also ensure this file is pushed to GitHub on the branch Railway deploys.
+# If Root Directory is "Downloads/Test_CID" instead, add a Docker build argument:
+#   MONOREPO_PREFIX=.
 #
 # Variables: VITE_BACKEND_URL at build time. Backend CORS_ORIGIN must list the frontend URL.
 
+ARG MONOREPO_PREFIX=Downloads/Test_CID
+
 FROM node:20-bookworm-slim AS builder
+ARG MONOREPO_PREFIX
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-COPY packages/frontend/package.json packages/frontend/
-COPY packages/backend/package.json packages/backend/
-COPY packages/desktop/package.json packages/desktop/
+COPY ${MONOREPO_PREFIX}/package.json ${MONOREPO_PREFIX}/package-lock.json ./
+COPY ${MONOREPO_PREFIX}/packages/frontend/package.json packages/frontend/
+COPY ${MONOREPO_PREFIX}/packages/backend/package.json packages/backend/
+COPY ${MONOREPO_PREFIX}/packages/desktop/package.json packages/desktop/
 
 RUN npm ci
 
-COPY App_Icon.jpg ./
-COPY turbo.json ./
-COPY packages/frontend ./packages/frontend
-COPY packages/desktop/package.json ./packages/desktop/package.json
+COPY ${MONOREPO_PREFIX}/App_Icon.jpg ./
+COPY ${MONOREPO_PREFIX}/turbo.json ./
+COPY ${MONOREPO_PREFIX}/packages/frontend ./packages/frontend
+COPY ${MONOREPO_PREFIX}/packages/desktop/package.json ./packages/desktop/package.json
 
 ARG VITE_BACKEND_URL=https://electra-backend.up.railway.app
 ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
