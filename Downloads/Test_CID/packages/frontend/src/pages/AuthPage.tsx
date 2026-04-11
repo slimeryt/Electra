@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { formatAuthError } from '../lib/formatAuthError';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+import { usePhoneLayout } from '../hooks/useMediaQuery';
 
 interface AuthPageProps {
   mode: 'login' | 'register';
@@ -12,6 +13,7 @@ interface AuthPageProps {
 
 export default function AuthPage({ mode }: AuthPageProps) {
   const navigate = useNavigate();
+  const isPhone = usePhoneLayout();
   const { login, register } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,15 +45,23 @@ export default function AuthPage({ mode }: AuthPageProps) {
   return (
     <div style={{
       display: 'flex',
-      flexWrap: 'wrap',
-      minHeight: '100dvh',
+      flexDirection: isPhone ? 'column' : 'row',
+      flexWrap: isPhone ? 'nowrap' : 'wrap',
       width: '100%',
       maxWidth: '100vw',
       background: 'var(--bg-base)',
       overflowX: 'hidden',
-      overflowY: 'auto',
+      ...(isPhone
+        ? {
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto' as const,
+            WebkitOverflowScrolling: 'touch' as const,
+          }
+        : { minHeight: '100dvh', overflowY: 'auto' as const }),
     }}>
-      {/* Left decorative panel */}
+      {/* Left decorative panel (hidden on mobile — single-column form) */}
+      {!isPhone && (
       <div style={{
         flex: '0 0 45%',
         background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
@@ -123,20 +133,53 @@ export default function AuthPage({ mode }: AuthPageProps) {
           </div>
         </motion.div>
       </div>
+      )}
+
+      {isPhone && (
+        <div
+          style={{
+            flexShrink: 0,
+            padding: '28px 20px 20px',
+            paddingTop: 'max(28px, env(safe-area-inset-top, 0px))',
+            textAlign: 'center',
+            background: 'linear-gradient(180deg, #1a1a2e 0%, var(--bg-base) 100%)',
+            borderBottom: '1px solid var(--border)',
+          }}
+        >
+          <div style={{ fontSize: 44, lineHeight: 1, marginBottom: 8 }}>⚡</div>
+          <h1 style={{
+            fontSize: 26,
+            fontWeight: 800,
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.03em',
+            margin: 0,
+          }}
+          >
+            Electra
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.45, maxWidth: 280, marginLeft: 'auto', marginRight: 'auto' }}>
+            Private, fast, and open source.
+          </p>
+        </div>
+      )}
 
       {/* Right form panel */}
       <div style={{
-        flex: 1, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', padding: 48,
+        flex: 1,
+        display: 'flex',
+        alignItems: isPhone ? 'flex-start' : 'center',
+        justifyContent: 'center',
+        padding: isPhone ? '20px 18px 32px' : 48,
+        minHeight: 0,
       }}>
         <motion.div
           initial={{ opacity: 0, x: 16 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
-          style={{ width: '100%', maxWidth: 400 }}
+          style={{ width: '100%', maxWidth: isPhone ? '100%' : 400 }}
         >
           <h2 style={{
-            fontSize: 28, fontWeight: 700, color: 'var(--text-primary)',
+            fontSize: isPhone ? 22 : 28, fontWeight: 700, color: 'var(--text-primary)',
             marginBottom: 8, letterSpacing: '-0.02em',
           }}>
             {mode === 'login' ? 'Welcome back' : 'Create account'}

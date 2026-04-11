@@ -16,6 +16,16 @@ html, body, #root {
   flex-direction: column;
 }
 
+/* Router + providers: fill viewport so nested flex/min-height:0 scroll works */
+#root > .app-viewport {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+}
+
 /* Standalone PWA / iOS home-screen shortcut — notch & home indicator */
 @supports (padding: env(safe-area-inset-bottom)) {
   #root {
@@ -169,15 +179,27 @@ html, body, #root {
   flex: 1;
   min-height: 0;
   height: 100%;
-  padding: 8px;
-  gap: 8px;
+  max-height: 100dvh;
+  padding: 0;
+  gap: 0;
   overflow: hidden;
 }
 
 .app-shell--phone-fs .app-shell-main {
   flex: 1;
   min-height: 0;
-  border-radius: var(--radius-lg);
+  min-width: 0;
+  border-radius: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fullscreen routes (settings, discover): single scroll surface inside main */
+.app-shell--phone-fs .app-shell-main > * {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
 }
 
 .mobile-nav-backdrop {

@@ -231,7 +231,7 @@ export default function MainLayout() {
         </div>
       )}
 
-      <UserPanel />
+      {!(isPhone && isFullscreen) && <UserPanel />}
     </div>
   );
 }

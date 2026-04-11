@@ -55,14 +55,21 @@ function SocketInit() {
 
 export default function App() {
   return (
+    <div className="app-viewport">
     <BrowserRouter>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <ContextMenuProvider>
+        <div
+          style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+        >
         <TitleBar />
         <ScreenSharePickerModal />
         <AuthLogoutListener />
         <ProfileCard />
-        <div style={{ display: 'contents' }} onContextMenu={e => e.preventDefault()}>
+        <div
+          style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          onContextMenu={e => e.preventDefault()}
+        >
         <Routes>
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/register" element={<AuthPage mode="register" />} />
@@ -85,7 +92,9 @@ export default function App() {
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>
         </div>
+        </div>
       </ContextMenuProvider>
     </BrowserRouter>
+    </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Camera, ImagePlus, X, ArrowUpRight, ArrowRight, ArrowDownRight, ArrowDown,
-  User, Palette, KeyRound, LogOut, Trash2, RefreshCw,
+  User, Palette, KeyRound, LogOut, Trash2, RefreshCw, ArrowLeft,
 } from 'lucide-react';
 import { useThemeStore, THEMES, type Theme } from '../store/themeStore';
 import { useAuthStore } from '../store/authStore';
@@ -13,6 +13,7 @@ import client from '../api/client';
 import type { User as UserType } from '../types/models';
 import { getSavedAccounts, upsertSavedAccount, removeSavedAccount, switchToAccount, type SavedAccount } from '../lib/savedAccounts';
 import { userTag } from '../lib/userTag';
+import { usePhoneLayout } from '../hooks/useMediaQuery';
 
 // ── Font options ──────────────────────────────────────────────────────────────
 const FONTS: { value: string; label: string; css: string }[] = [
@@ -93,6 +94,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export default function UserSettingsPage() {
   const { user, logout, setUser } = useAuthStore();
   const navigate = useNavigate();
+  const isMobile = usePhoneLayout();
   const { theme: currentTheme, setTheme } = useThemeStore();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
@@ -199,9 +201,63 @@ export default function UserSettingsPage() {
 
   // ── Layout ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ flex: 1, display: 'flex', overflow: 'hidden', height: '100%' }}>
+    <div style={{
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      minHeight: 0,
+      height: '100%',
+    }}>
 
-      {/* Left nav sidebar */}
+      {isMobile && (
+        <header
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            minHeight: 52,
+            padding: '8px 10px',
+            paddingTop: 'max(8px, env(safe-area-inset-top, 0px))',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--bg-elevated)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            aria-label="Back"
+            style={{
+              width: 44,
+              height: 44,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <ArrowLeft size={22} strokeWidth={2} />
+          </button>
+          <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>User Settings</span>
+        </header>
+      )}
+
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        overflow: 'hidden',
+        minHeight: 0,
+      }}>
+
+      {/* Left nav sidebar (desktop) */}
+      {!isMobile && (
       <div style={{
         width: 220, flexShrink: 0,
         background: 'var(--bg-base)',
@@ -252,14 +308,66 @@ export default function UserSettingsPage() {
           </button>
         </div>
       </div>
+      )}
+
+      {isMobile && (
+        <nav
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 6,
+            padding: '10px 12px',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--bg-base)',
+          }}
+          aria-label="Settings sections"
+        >
+          {NAV_ITEMS.map(item => (
+            <button
+              key={item.tab}
+              type="button"
+              onClick={() => setActiveTab(item.tab)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-md)',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: 13,
+                fontWeight: activeTab === item.tab ? 600 : 500,
+                background: activeTab === item.tab ? 'rgba(255,255,255,0.1)' : 'var(--bg-overlay)',
+                color: activeTab === item.tab ? 'var(--text-primary)' : 'var(--text-secondary)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      )}
 
       {/* Content area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '32px 40px' }}>
-        <div style={{ maxWidth: 860, margin: '0 auto' }}>
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        padding: isMobile ? '14px 14px calc(20px + env(safe-area-inset-bottom, 0px))' : '32px 40px',
+        minHeight: 0,
+        WebkitOverflowScrolling: 'touch',
+      }}>
+        <div style={{ maxWidth: 860, margin: '0 auto', width: '100%' }}>
 
           {/* ── Profile tab ──────────────────────────────────────────────── */}
           {activeTab === 'profile' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 24, alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: isMobile ? 16 : 24, alignItems: 'start' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
                 {/* Avatar */}
@@ -304,7 +412,7 @@ export default function UserSettingsPage() {
                     <Input label="Display Name" value={displayName} onChange={e => setDisplayName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSave()} placeholder="Your display name" />
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8 }}>Username Font</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 6 }}>
                     {FONTS.map(f => (
                       <button key={f.value} onClick={() => setSelectedFont(f.value)} style={{
                         padding: '8px 6px', border: `1.5px solid ${selectedFont === f.value ? 'var(--accent)' : 'var(--border)'}`,
@@ -377,7 +485,7 @@ export default function UserSettingsPage() {
               </div>
 
               {/* Preview */}
-              <div style={{ position: 'sticky', top: 24 }}>
+              <div style={{ position: isMobile ? 'relative' : 'sticky', top: isMobile ? undefined : 24 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, textAlign: 'center' }}>Preview</div>
                 <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-strong)', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
                   <ProfileCardBody profile={previewUser} />
@@ -388,7 +496,7 @@ export default function UserSettingsPage() {
 
           {/* ── Appearance tab ───────────────────────────────────────────── */}
           {activeTab === 'appearance' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 24, alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: isMobile ? 16 : 24, alignItems: 'start' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
                 {/* Theme */}
@@ -542,7 +650,7 @@ export default function UserSettingsPage() {
               </div>
 
               {/* Preview */}
-              <div style={{ position: 'sticky', top: 24 }}>
+              <div style={{ position: isMobile ? 'relative' : 'sticky', top: isMobile ? undefined : 24 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, textAlign: 'center' }}>Preview</div>
                 <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-strong)', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
                   <ProfileCardBody profile={previewUser} />
@@ -654,6 +762,7 @@ export default function UserSettingsPage() {
           )}
 
         </div>
+      </div>
       </div>
     </div>
   );

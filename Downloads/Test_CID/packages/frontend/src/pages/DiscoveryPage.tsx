@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck, ArrowLeft } from 'lucide-react';
+import { usePhoneLayout } from '../hooks/useMediaQuery';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Spinner } from '../components/ui/Spinner';
@@ -143,19 +144,66 @@ export default function DiscoveryPage() {
   );
 
   const myServerIds = new Set(myServers.map(s => s.id));
+  const isPhone = usePhoneLayout();
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg-base)' }}>
+    <div style={{
+      flex: 1,
+      minHeight: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      background: 'var(--bg-base)',
+    }}>
+      {isPhone && (
+        <header
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            minHeight: 52,
+            padding: '8px 10px',
+            paddingTop: 'max(8px, env(safe-area-inset-top, 0px))',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--bg-elevated)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            aria-label="Back"
+            style={{
+              width: 44,
+              height: 44,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <ArrowLeft size={22} strokeWidth={2} />
+          </button>
+          <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>Discover</span>
+        </header>
+      )}
+
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       {/* Header */}
       <div style={{
         background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-base) 100%)',
         borderBottom: '1px solid var(--border)',
-        padding: '40px 48px 32px',
+        padding: isPhone ? '16px 16px 20px' : '40px 48px 32px',
       }}>
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: 8 }}>
+        <h1 style={{ fontSize: isPhone ? 22 : 32, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: 8 }}>
           Discover Servers
         </h1>
-        <p style={{ fontSize: 15, color: 'var(--text-secondary)', marginBottom: 24 }}>
+        <p style={{ fontSize: isPhone ? 13 : 15, color: 'var(--text-secondary)', marginBottom: isPhone ? 16 : 24, lineHeight: 1.45 }}>
           Find communities to join — from gaming to music to programming.
         </p>
         <div style={{ maxWidth: 480 }}>
@@ -163,13 +211,13 @@ export default function DiscoveryPage() {
             placeholder="🔍  Search servers..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ fontSize: 15, padding: '12px 16px' }}
+            style={{ fontSize: isPhone ? 14 : 15, padding: isPhone ? '10px 14px' : '12px 16px' }}
           />
         </div>
       </div>
 
       {/* Grid */}
-      <div style={{ padding: '32px 48px' }}>
+      <div style={{ padding: isPhone ? '16px 14px calc(24px + env(safe-area-inset-bottom, 0px))' : '32px 48px' }}>
         {isLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 48 }}><Spinner /></div>
         ) : filtered.length === 0 ? (
@@ -188,7 +236,12 @@ export default function DiscoveryPage() {
               {filtered.length} server{filtered.length !== 1 ? 's' : ''}
               {search && ` matching "${search}"`}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isPhone ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))',
+              gap: 16,
+            }}
+            >
               {filtered.map((server, i) => (
                 <motion.div key={server.id} transition={{ delay: i * 0.04 }}>
                   <ServerCard
@@ -202,6 +255,7 @@ export default function DiscoveryPage() {
             </div>
           </>
         )}
+      </div>
       </div>
     </div>
   );
