@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
@@ -16,7 +17,12 @@ export function useMediaQuery(query: string): boolean {
   return matches;
 }
 
-/** Primary breakpoint for drawer + app bar layout (phones & small tablets in portrait). */
+/**
+ * Drawer + top app bar + mobile chrome.
+ * Uses CSS breakpoint in the browser; on Capacitor (APK/IPA) always true so Android WebViews
+ * that report a width >768px still get the mobile shell (otherwise the new layout never applies).
+ */
 export function usePhoneLayout() {
-  return useMediaQuery('(max-width: 768px)');
+  const narrowViewport = useMediaQuery('(max-width: 768px)');
+  return narrowViewport || Capacitor.isNativePlatform();
 }
