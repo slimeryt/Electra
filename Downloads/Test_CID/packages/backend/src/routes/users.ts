@@ -15,6 +15,12 @@ try { db.exec('ALTER TABLE users ADD COLUMN theme TEXT'); } catch { /* exists */
 try { db.exec('ALTER TABLE users ADD COLUMN verified INTEGER NOT NULL DEFAULT 0'); } catch { /* exists */ }
 try { db.exec('ALTER TABLE users ADD COLUMN badges TEXT NOT NULL DEFAULT "[]"'); } catch { /* exists */ }
 try { db.exec('ALTER TABLE servers ADD COLUMN verified INTEGER NOT NULL DEFAULT 0'); } catch { /* exists */ }
+try { db.exec('ALTER TABLE users ADD COLUMN show_badges INTEGER NOT NULL DEFAULT 1'); } catch { /* exists */ }
+
+const ADMIN_USERNAME = 'slimeryt';
+
+// Auto-verify admin
+try { db.prepare(`UPDATE users SET verified = 1 WHERE username = ? AND verified = 0`).run(ADMIN_USERNAME); } catch {}
 
 // Back-fill early_access badge for all existing users who don't have it
 try {
@@ -28,9 +34,7 @@ try {
     }
   }
 } catch {}
-
-const ADMIN_USERNAME = 'slimeryt';
-const PROFILE_FIELDS = 'id, username, display_name, email, avatar_url, banner_url, status, custom_status, bio, accent_color, username_font, theme, verified, badges';
+const PROFILE_FIELDS = 'id, username, display_name, email, avatar_url, banner_url, status, custom_status, bio, accent_color, username_font, theme, verified, badges, show_badges';
 
 const router = Router();
 router.use(requireAuth);
@@ -47,7 +51,7 @@ router.get('/:userId', (req: AuthRequest, res, next) => {
 
 router.patch('/me', (req: AuthRequest, res, next) => {
   try {
-    const { display_name, avatar_url, status, custom_status, bio, accent_color, username_font, theme } = req.body;
+    const { display_name, avatar_url, status, custom_status, bio, accent_color, username_font, theme, show_badges } = req.body;
     const fields: string[] = [];
     const values: unknown[] = [];
 
@@ -58,6 +62,7 @@ router.patch('/me', (req: AuthRequest, res, next) => {
     if (accent_color !== undefined)   { fields.push('accent_color = ?');  values.push(accent_color || null); }
     if (username_font !== undefined)  { fields.push('username_font = ?'); values.push(username_font || null); }
     if (theme !== undefined)          { fields.push('theme = ?');         values.push(theme || null); }
+    if (show_badges !== undefined)    { fields.push('show_badges = ?');   values.push(show_badges ? 1 : 0); }
     if (status !== undefined) {
       const valid = ['online', 'idle', 'dnd', 'offline'];
       if (!valid.includes(status)) return res.status(400).json({ error: 'Invalid status' });

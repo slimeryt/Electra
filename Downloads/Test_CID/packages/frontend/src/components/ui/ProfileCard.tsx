@@ -30,6 +30,39 @@ export function primaryColor(v: string | null | undefined): string {
   return m ? m[0] : '#5865f2';
 }
 
+function BadgeChip({ meta }: { meta: { label: string; icon: React.ReactNode; color: string } }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      title={meta.label}
+      style={{
+        display: 'flex', alignItems: 'center', gap: hovered ? 4 : 0,
+        padding: hovered ? '3px 8px' : '3px 6px',
+        borderRadius: 99,
+        background: `${meta.color}22`,
+        border: `1px solid ${meta.color}55`,
+        color: meta.color, fontSize: 11, fontWeight: 600,
+        overflow: 'hidden',
+        maxWidth: hovered ? 120 : 24,
+        transition: 'max-width 200ms ease, padding 200ms ease, gap 200ms ease',
+        cursor: 'default',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {meta.icon}
+      <span style={{
+        opacity: hovered ? 1 : 0,
+        transition: 'opacity 150ms ease',
+        pointerEvents: 'none',
+      }}>
+        {meta.label}
+      </span>
+    </div>
+  );
+}
+
 /** Render the visual body of a profile card — used in both floating card and settings preview. */
 export function ProfileCardBody({
   profile,
@@ -144,26 +177,15 @@ export function ProfileCardBody({
               </>
             )}
 
-            {/* Badges */}
-            {badges.length > 0 && (
+            {/* Badges — only shown if user has show_badges enabled */}
+            {badges.length > 0 && profile.show_badges !== 0 && (
               <>
                 <div style={{ height: 1, background: 'var(--border)', margin: '10px 0 8px' }} />
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                   {badges.map(badge => {
                     const meta = BADGE_META[badge];
                     if (!meta) return null;
-                    return (
-                      <div key={badge} title={meta.label} style={{
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        padding: '3px 8px', borderRadius: 99,
-                        background: `${meta.color}22`,
-                        border: `1px solid ${meta.color}55`,
-                        color: meta.color, fontSize: 11, fontWeight: 600,
-                      }}>
-                        {meta.icon}
-                        {meta.label}
-                      </div>
-                    );
+                    return <BadgeChip key={badge} meta={meta} />;
                   })}
                 </div>
               </>

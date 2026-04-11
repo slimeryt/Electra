@@ -86,6 +86,7 @@ export default function UserSettingsPage() {
 
   const parsed = parseAccentColor(user?.accent_color);
 
+  const [showBadges, setShowBadges] = useState((user?.show_badges ?? 1) !== 0);
   const [displayName, setDisplayName] = useState(user?.display_name || '');
   const [customStatus, setCustomStatus] = useState(user?.custom_status || '');
   const [bio, setBio] = useState(user?.bio || '');
@@ -134,6 +135,7 @@ export default function UserSettingsPage() {
         accent_color: accentValue,
         username_font: selectedFont || null,
         status,
+        show_badges: showBadges ? 1 : 0,
       });
       setUser(data.user || data);
       setSaved(true);
@@ -471,6 +473,30 @@ export default function UserSettingsPage() {
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
                 />
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', marginTop: 3 }}>{bio.length}/300</div>
+              </div>
+
+              {/* Show badges toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Show Badges</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Display your badges on your profile card</div>
+                </div>
+                <button
+                  onClick={() => setShowBadges(v => !v)}
+                  style={{
+                    width: 40, height: 22, borderRadius: 11, border: 'none',
+                    background: showBadges ? 'var(--accent)' : 'var(--bg-overlay)',
+                    cursor: 'pointer', position: 'relative', flexShrink: 0,
+                    transition: 'background 200ms',
+                    outline: '1px solid var(--border)',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute', top: 3, left: showBadges ? 21 : 3,
+                    width: 16, height: 16, borderRadius: '50%',
+                    background: '#fff', transition: 'left 200ms',
+                  }} />
+                </button>
               </div>
             </div>
 

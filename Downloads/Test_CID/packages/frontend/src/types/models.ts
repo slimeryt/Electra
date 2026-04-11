@@ -13,6 +13,7 @@ export interface User {
   theme?: string | null;
   verified?: number;
   badges?: string; // JSON array string e.g. '["early_access","staff"]'
+  show_badges?: number; // 1 = show, 0 = hide
   created_at: number;
   updated_at: number;
 }
