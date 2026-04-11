@@ -73,9 +73,24 @@ jobs:
         run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
         working-directory: Downloads/Test_CID/packages/frontend/android
 
+      # electron-builder often creates a release from package.json version, not the git tag — upload then fails with "release not found".
+      - name: Ensure GitHub release exists for this tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ github.ref_name }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Release ${{ github.ref_name }} already exists."
+          else
+            echo "Creating release ${{ github.ref_name }}..."
+            gh release create "${{ github.ref_name }}" \
+              --repo "${{ github.repository }}" \
+              --title "${{ github.ref_name }}" \
+              --notes "Automated release. Windows installer from electron-builder; **Electra-Android.apk** from CI."
+          fi
+
       - name: Upload APK to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cp "Downloads/Test_CID/packages/frontend/android/app/build/outputs/apk/debug/app-debug.apk" Electra-Android.apk
-          gh release upload "${{ github.ref_name }}" Electra-Android.apk --clobber
+          gh release upload "${{ github.ref_name }}" Electra-Android.apk --clobber --repo "${{ github.repository }}"
