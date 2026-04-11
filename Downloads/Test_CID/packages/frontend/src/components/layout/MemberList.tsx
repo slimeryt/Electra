@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { MessageSquare, Clipboard, UserMinus, Shield, Check, User } from 'lucide-react';
+import { MessageSquare, Clipboard, UserMinus, Shield, Check, User, BadgeCheck } from 'lucide-react';
 import { ServerMemberWithRoles, ServerRole } from '../../types/models';
 import { serversApi } from '../../api/servers';
 import { rolesApi } from '../../api/roles';
 import { dmsApi } from '../../api/dms';
 import { useAuthStore } from '../../store/authStore';
+import { getSocket } from '../../socket/client';
 import { useServerStore } from '../../store/serverStore';
 import { useContextMenu } from '../../context/ContextMenuContext';
 import { Avatar } from '../ui/Avatar';
@@ -31,6 +32,22 @@ export function MemberList({ serverId }: { serverId: string }) {
   useEffect(() => {
     serversApi.members(serverId).then(setMembers).catch(() => {});
     rolesApi.list(serverId).then(r => setRoles(r.filter(r => !r.is_default))).catch(() => {});
+
+    const socket = getSocket();
+    const onMemberJoin = (data: { server_id: string; member: any }) => {
+      if (data.server_id !== serverId) return;
+      setMembers(prev => prev.some(m => m.id === data.member.id) ? prev : [...prev, data.member]);
+    };
+    const onMemberLeave = (data: { server_id: string; user_id: string }) => {
+      if (data.server_id !== serverId) return;
+      setMembers(prev => prev.filter(m => m.id !== data.user_id));
+    };
+    socket.on('member_join', onMemberJoin);
+    socket.on('member_leave', onMemberLeave);
+    return () => {
+      socket.off('member_join', onMemberJoin);
+      socket.off('member_leave', onMemberLeave);
+    };
   }, [serverId]);
 
   // Clamp role picker inside the viewport after it renders
@@ -257,14 +274,21 @@ export function MemberList({ serverId }: { serverId: string }) {
                 }}
               >
                 <Avatar user={member} size={32} showStatus />
-                <div style={{ overflow: 'hidden', flex: 1 }}>
+                <div style={{ overflow: 'hidden', flex: 1, display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
                   <div style={{
                     fontSize: 13, fontWeight: 500,
+                    fontFamily: member.username_font?.trim() ? member.username_font : 'inherit',
                     color: isOffline ? 'var(--text-muted)' : (nameColor || 'var(--text-primary)'),
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    minWidth: 0,
                   }}>
                     {member.display_name || member.username}
                   </div>
+                  {!!member.verified && (
+                    <span title="Verified" style={{ flexShrink: 0, display: 'inline-flex', color: '#3b82f6' }}>
+                      <BadgeCheck size={14} aria-hidden />
+                    </span>
+                  )}
                 </div>
               </div>
             );

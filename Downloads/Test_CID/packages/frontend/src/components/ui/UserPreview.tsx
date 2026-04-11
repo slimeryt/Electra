@@ -8,6 +8,8 @@ import { ProfileCardBody } from './ProfileCard';
 import { dmsApi } from '../../api/dms';
 import { usersApi } from '../../api/users';
 import { useFriendStore } from '../../store/friendStore';
+import { useAuthStore } from '../../store/authStore';
+import { isPlatformVerifier } from '../../lib/platformAdmin';
 import type { User, ServerRole } from '../../types/models';
 
 export interface PreviewUser {
@@ -40,6 +42,8 @@ export function UserPreview({ user, anchorRef, onClose, currentUserId }: UserPre
   const [loading, setLoading] = useState(true);
 
   const { friends, requests, fetchFriends, fetchRequests, sendRequest, acceptRequest, declineRequest } = useFriendStore();
+  const { user: currentUser } = useAuthStore();
+  const canVerifyOthers = isPlatformVerifier(currentUser?.username);
 
   const friendState = useMemo(() => {
     const uid = user.id;
@@ -174,6 +178,7 @@ export function UserPreview({ user, anchorRef, onClose, currentUserId }: UserPre
         profile={profile}
         loading={loading}
         onClose={onClose}
+        onVerifyChange={canVerifyOthers ? (updated) => setProfile(updated) : undefined}
       />
       {!loading && user.roles && user.roles.length > 0 && (
         <div style={{ padding: '0 16px 10px' }}>

@@ -13,7 +13,8 @@ interface ParticipantTileProps {
 
 export function ParticipantTile({ participant, isLocal, localStream }: ParticipantTileProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { remoteStreams } = useVoiceStore();
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const { remoteStreams, isDeafened } = useVoiceStore();
   const [speaking, setSpeaking] = useState(false);
   // Remote streams require an explicit click to view
   const [watching, setWatching] = useState(false);
@@ -26,8 +27,28 @@ export function ParticipantTile({ participant, isLocal, localStream }: Participa
   useEffect(() => {
     if (videoRef.current && stream && showVideo) {
       videoRef.current.srcObject = stream;
+      videoRef.current.muted = isLocal || isDeafened;
     }
-  }, [stream, showVideo]);
+  }, [stream, showVideo, isLocal, isDeafened]);
+
+  // Remote voice-only (or not watching video): play audio via <audio> — <video> is not mounted, so without this you hear nobody.
+  useEffect(() => {
+    if (isLocal || !stream) return;
+    const el = audioRef.current;
+    if (!el) return;
+    if (showVideo) {
+      el.srcObject = null;
+      try { el.pause(); } catch { /* ignore */ }
+      return;
+    }
+    el.srcObject = stream;
+    el.muted = isDeafened;
+    void el.play().catch(() => {});
+    return () => {
+      el.srcObject = null;
+      try { el.pause(); } catch { /* ignore */ }
+    };
+  }, [isLocal, stream, showVideo, isDeafened]);
 
   // When remote participant stops streaming, reset watch state
   useEffect(() => {
@@ -35,13 +56,17 @@ export function ParticipantTile({ participant, isLocal, localStream }: Participa
   }, [hasVideo]);
 
   useEffect(() => {
-    if (!stream || !isLocal) return;
+    if (!stream) return;
+    if (!isLocal && participant.muted) {
+      setSpeaking(false);
+      return;
+    }
     const getVolume = MediaManager.createVolumeAnalyser(stream);
     const interval = setInterval(() => {
       setSpeaking(getVolume() > 0.05);
     }, 100);
     return () => clearInterval(interval);
-  }, [stream, isLocal]);
+  }, [stream, isLocal, participant.muted]);
 
   return (
     <div style={{
@@ -57,11 +82,20 @@ export function ParticipantTile({ participant, isLocal, localStream }: Participa
       transition: 'border-color 120ms',
       boxShadow: speaking ? '0 0 0 3px rgba(34,197,94,0.20)' : 'var(--shadow-md)',
     }}>
+      {!isLocal && stream && (
+        <audio
+          ref={audioRef}
+          autoPlay
+          playsInline
+          style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+          aria-hidden
+        />
+      )}
       {showVideo ? (
         <video
           ref={videoRef}
           autoPlay
-          muted={isLocal}
+          muted={isLocal || isDeafened}
           playsInline
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />

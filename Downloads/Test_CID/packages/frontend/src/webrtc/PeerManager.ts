@@ -71,7 +71,10 @@ class PeerManagerClass {
 
     const remoteStream = new MediaStream();
     pc.ontrack = (e) => {
-      e.streams[0]?.getTracks().forEach(t => remoteStream.addTrack(t));
+      const t = e.track;
+      if (t && !remoteStream.getTracks().some((x) => x.id === t.id)) {
+        remoteStream.addTrack(t);
+      }
       useVoiceStore.getState().setRemoteStream(userId, remoteStream);
     };
 

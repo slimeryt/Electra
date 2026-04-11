@@ -6,8 +6,8 @@ import { useAuthStore } from '../../store/authStore';
 import { usersApi } from '../../api/users';
 import { Avatar } from './Avatar';
 import type { User } from '../../types/models';
-
-const ADMIN_USERNAME = 'slimeryt';
+import { userTag } from '../../lib/userTag';
+import { isPlatformVerifier } from '../../lib/platformAdmin';
 
 const BADGE_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   early_access: { label: 'Early Access',  icon: <Sparkles size={11} />, color: '#f59e0b' },
@@ -77,7 +77,7 @@ export function ProfileCardBody({
   onVerifyChange?: (updated: User) => void;
 }) {
   const { user: currentUser } = useAuthStore();
-  const isAdmin = currentUser?.username === ADMIN_USERNAME;
+  const isAdmin = isPlatformVerifier(currentUser?.username);
   const isVerified = !!profile?.verified;
   const [verifying, setVerifying] = useState(false);
 
@@ -154,7 +154,7 @@ export function ProfileCardBody({
               )}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 8 }}>
-              @{profile.username}
+              {userTag(profile)}
             </div>
 
             {/* Accent divider */}
@@ -229,7 +229,7 @@ export function ProfileCard() {
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const { user: currentUser } = useAuthStore();
-  const isAdmin = currentUser?.username === ADMIN_USERNAME;
+  const isAdmin = isPlatformVerifier(currentUser?.username);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

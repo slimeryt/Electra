@@ -31,21 +31,26 @@ function generateTokens(userId: string) {
   return { accessToken, refreshToken };
 }
 
+function generateDiscriminator(): string {
+  return String(Math.floor(Math.random() * 9999) + 1).padStart(4, '0');
+}
+
 export function register(username: string, displayName: string, email: string, password: string) {
   const existing = db.prepare('SELECT id FROM users WHERE email = ? OR username = ?').get(email, username);
   if (existing) throw Object.assign(new Error('Email or username already taken'), { status: 409 });
 
   const passwordHash = bcrypt.hashSync(password, 12);
+  const discriminator = generateDiscriminator();
   const stmt = db.prepare(
-    'INSERT INTO users (username, display_name, email, password_hash, badges) VALUES (?, ?, ?, ?, ?) RETURNING id, username, display_name, email, avatar_url, status, verified, badges'
+    'INSERT INTO users (username, discriminator, display_name, email, password_hash, badges) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, username, discriminator, display_name, email, avatar_url, status, verified, badges'
   );
-  const user = stmt.get(username, displayName, email, passwordHash, JSON.stringify(['early_access'])) as Omit<User, 'password_hash'>;
+  const user = stmt.get(username, discriminator, displayName, email, passwordHash, JSON.stringify(['early_access'])) as Omit<User, 'password_hash'>;
   const tokens = generateTokens(user.id);
   return { user, ...tokens };
 }
 
 export function login(email: string, password: string) {
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as User | undefined;
+  const user = db.prepare('SELECT *, discriminator FROM users WHERE email = ?').get(email) as User | undefined;
   if (!user) throw Object.assign(new Error('Invalid credentials'), { status: 401 });
 
   const valid = bcrypt.compareSync(password, user.password_hash);
@@ -69,7 +74,7 @@ export function refreshTokens(refreshToken: string) {
   db.prepare('DELETE FROM refresh_tokens WHERE id = ?').run(stored.id);
 
   const user = db.prepare(
-    'SELECT id, username, display_name, email, avatar_url, status FROM users WHERE id = ?'
+    'SELECT id, username, discriminator, display_name, email, avatar_url, status FROM users WHERE id = ?'
   ).get(stored.user_id) as Omit<User, 'password_hash'> | undefined;
 
   if (!user) throw Object.assign(new Error('User not found'), { status: 401 });

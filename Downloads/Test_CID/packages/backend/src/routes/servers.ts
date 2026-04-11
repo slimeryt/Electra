@@ -102,8 +102,17 @@ router.post('/join', (req: AuthRequest, res, next) => {
     const { invite_code } = req.body;
     if (!invite_code) return res.status(400).json({ error: 'invite_code required' });
     const server = serverService.joinServer(invite_code, req.userId!);
+    const serverId = (server as any).id;
+    // Emit member_join so all clients in the server update their member list
+    try {
+      const newMembers = serverService.getServerMembers(serverId);
+      const newMember = newMembers.find((m: any) => m.id === req.userId);
+      if (newMember) {
+        getIo().to(`server:${serverId}`).emit('member_join', { server_id: serverId, member: newMember });
+      }
+    } catch {}
     // Trigger welcome + auto-role bots after join
-    try { botService.handleMemberJoin(getIo(), (server as any).id, req.userId!); } catch {}
+    try { botService.handleMemberJoin(getIo(), serverId, req.userId!); } catch {}
     res.json(server);
   } catch (e) { next(e); }
 });
@@ -111,6 +120,7 @@ router.post('/join', (req: AuthRequest, res, next) => {
 router.delete('/:serverId/members/me', (req: AuthRequest, res, next) => {
   try {
     serverService.leaveServer(req.params.serverId, req.userId!);
+    try { getIo().to(`server:${req.params.serverId}`).emit('member_leave', { server_id: req.params.serverId, user_id: req.userId }); } catch {}
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
@@ -118,6 +128,7 @@ router.delete('/:serverId/members/me', (req: AuthRequest, res, next) => {
 router.delete('/:serverId/members/:userId', (req: AuthRequest, res, next) => {
   try {
     serverService.kickMember(req.params.serverId, req.params.userId, req.userId!);
+    try { getIo().to(`server:${req.params.serverId}`).emit('member_leave', { server_id: req.params.serverId, user_id: req.params.userId }); } catch {}
     res.json({ ok: true });
   } catch (e) { next(e); }
 });

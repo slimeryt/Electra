@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { userTag } from '../../lib/userTag';
 import { Settings, Mic, MicOff, Headphones, Volume2, VolumeX, PhoneOff } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
 import { useAuthStore } from '../../store/authStore';
@@ -110,7 +111,7 @@ export function UserPanel() {
           <div style={{
             fontSize: 13,
             fontWeight: 600,
-            fontFamily: 'var(--font-heading)',
+            fontFamily: user.username_font?.trim() ? user.username_font : 'var(--font-heading)',
             color: 'var(--text-primary)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -128,7 +129,7 @@ export function UserPanel() {
             lineHeight: 1.4,
             marginTop: 1,
           }}>
-            {user.custom_status ? user.custom_status : `@${user.username}`}
+            {user.custom_status ? user.custom_status : userTag(user)}
           </div>
         </div>
 

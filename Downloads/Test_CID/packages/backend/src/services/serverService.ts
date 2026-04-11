@@ -106,7 +106,7 @@ export function deleteServer(serverId: string, userId: string) {
 
 export function getServerMembers(serverId: string) {
   const members = db.prepare(`
-    SELECT u.id, u.username, u.display_name, u.avatar_url, u.status, sm.role, sm.joined_at
+    SELECT u.id, u.username, u.display_name, u.avatar_url, u.status, u.username_font, u.verified, sm.role, sm.joined_at
     FROM server_members sm
     JOIN users u ON u.id = sm.user_id
     WHERE sm.server_id = ?

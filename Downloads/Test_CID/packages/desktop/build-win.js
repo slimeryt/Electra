@@ -95,3 +95,15 @@ fsp.chmod = function(p, mode) {
 // Step 4: run electron-builder
 const ebCli = path.join(root, 'node_modules', 'electron-builder', 'out', 'cli', 'cli.js');
 require(ebCli);
+
+// Step 5: after build, print a reminder if latest.yml exists but isn't uploaded.
+// (electron-updater requires latest.yml on the GitHub release — without it every
+//  installed app will show "update check failed" on the splash screen.)
+process.on('exit', () => {
+  const latestYml = path.join(__dirname, 'release', 'latest.yml');
+  if (fs.existsSync(latestYml)) {
+    console.log('\n[build] ✓ latest.yml generated at release/latest.yml');
+    console.log('[build]   Make sure to include it when creating the GitHub release:');
+    console.log('[build]   gh release upload <tag> release/latest.yml --repo slimeryt/Electra --clobber\n');
+  }
+});

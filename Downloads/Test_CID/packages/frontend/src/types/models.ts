@@ -1,6 +1,7 @@
 export interface User {
   id: string;
   username: string;
+  discriminator?: string | null;
   display_name: string;
   email: string;
   avatar_url: string | null;
@@ -108,6 +109,8 @@ export interface ServerMember {
   username: string;
   display_name: string;
   avatar_url: string | null;
+  username_font?: string | null;
+  verified?: number;
   status: User['status'];
   role: 'owner' | 'admin' | 'member';
   joined_at: number;

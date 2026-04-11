@@ -12,6 +12,7 @@ import { ProfileCardBody } from '../components/ui/ProfileCard';
 import client from '../api/client';
 import type { User as UserType } from '../types/models';
 import { getSavedAccounts, upsertSavedAccount, removeSavedAccount, switchToAccount, type SavedAccount } from '../lib/savedAccounts';
+import { userTag } from '../lib/userTag';
 
 // ── Font options ──────────────────────────────────────────────────────────────
 const FONTS: { value: string; label: string; css: string }[] = [
@@ -290,7 +291,7 @@ export default function UserSettingsPage() {
                     </div>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 16, color: 'var(--text-primary)' }}>{user?.display_name}</div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>@{user?.username}</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>{user ? userTag(user) : ''}</div>
                       <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 6, opacity: 0.7 }}>Hover avatar to change · PNG, GIF supported</div>
                     </div>
                   </div>
@@ -559,7 +560,7 @@ export default function UserSettingsPage() {
                 <SectionLabel>Account Info</SectionLabel>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {[
-                    { label: 'Username',     value: `@${user?.username}` },
+                    { label: 'Username',     value: user ? userTag(user) : '—' },
                     { label: 'Display Name', value: user?.display_name || '—' },
                     { label: 'User ID',      value: user?.id || '—' },
                   ].map(row => (

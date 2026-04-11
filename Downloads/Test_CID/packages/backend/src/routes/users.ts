@@ -16,11 +16,32 @@ try { db.exec('ALTER TABLE users ADD COLUMN verified INTEGER NOT NULL DEFAULT 0'
 try { db.exec('ALTER TABLE users ADD COLUMN badges TEXT NOT NULL DEFAULT "[]"'); } catch { /* exists */ }
 try { db.exec('ALTER TABLE servers ADD COLUMN verified INTEGER NOT NULL DEFAULT 0'); } catch { /* exists */ }
 try { db.exec('ALTER TABLE users ADD COLUMN show_badges INTEGER NOT NULL DEFAULT 1'); } catch { /* exists */ }
+try { db.exec('ALTER TABLE users ADD COLUMN discriminator TEXT NOT NULL DEFAULT "0000"'); } catch { /* exists */ }
+// Back-fill discriminators for users who have "0000"
+try {
+  const zeros = db.prepare(`SELECT id FROM users WHERE discriminator = '0000'`).all() as { id: string }[];
+  for (const u of zeros) {
+    let disc: string;
+    let attempts = 0;
+    do {
+      disc = String(Math.floor(Math.random() * 9999) + 1).padStart(4, '0');
+      attempts++;
+    } while (attempts < 20);
+    db.prepare('UPDATE users SET discriminator = ? WHERE id = ?').run(disc, u.id);
+  }
+} catch {}
 
-const ADMIN_USERNAME = 'slimeryt';
+const PLATFORM_ADMIN_USERNAMES = (process.env.PLATFORM_ADMIN_USERNAMES || 'slimeryt')
+  .split(',')
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
 
-// Auto-verify admin
-try { db.prepare(`UPDATE users SET verified = 1 WHERE username = ? AND verified = 0`).run(ADMIN_USERNAME); } catch {}
+// Auto-verify platform admins (exact username match, case-insensitive)
+for (const name of PLATFORM_ADMIN_USERNAMES) {
+  try {
+    db.prepare(`UPDATE users SET verified = 1 WHERE lower(username) = ? AND verified = 0`).run(name);
+  } catch { /* ignore */ }
+}
 
 // Back-fill early_access badge for all existing users who don't have it
 try {
@@ -34,7 +55,7 @@ try {
     }
   }
 } catch {}
-const PROFILE_FIELDS = 'id, username, display_name, email, avatar_url, banner_url, status, custom_status, bio, accent_color, username_font, theme, verified, badges, show_badges';
+const PROFILE_FIELDS = 'id, username, discriminator, display_name, email, avatar_url, banner_url, status, custom_status, bio, accent_color, username_font, theme, verified, badges, show_badges';
 
 const router = Router();
 router.use(requireAuth);
@@ -128,9 +149,10 @@ router.delete('/me/banner', (req: AuthRequest, res, next) => {
   } catch (e) { next(e); }
 });
 
-// ── Admin-only routes (slimeryt only) ─────────────────────────────────────────
+// ── Platform admin routes (verify users/servers globally) ─────────────────────
 function requireAdmin(req: AuthRequest, res: any, next: any) {
-  if ((req.user as any)?.username !== ADMIN_USERNAME) {
+  const u = ((req.user as any)?.username || '').toLowerCase();
+  if (!PLATFORM_ADMIN_USERNAMES.includes(u)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   next();
