@@ -1,3 +1,4 @@
+# Mirror of ../../.github/workflows/release.yml — GitHub only runs workflows from repo root .github/workflows/
 name: Release
 
 on:
@@ -11,9 +12,6 @@ jobs:
     permissions:
       contents: write
 
-    env:
-      PROJECT_ROOT: Downloads/Test_CID
-
     steps:
       - uses: actions/checkout@v4
 
@@ -25,27 +23,24 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: ${{ env.PROJECT_ROOT }}
+        working-directory: Downloads/Test_CID
 
       - name: Build frontend
         run: npm run build
-        working-directory: ${{ env.PROJECT_ROOT }}/packages/frontend
+        working-directory: Downloads/Test_CID/packages/frontend
 
       - name: Build & publish Electron (Windows)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: node build-win.js --publish always
-        working-directory: ${{ env.PROJECT_ROOT }}/packages/desktop
+        working-directory: Downloads/Test_CID/packages/desktop
 
-  # Debug APK for sideload — uploads after Windows release exists
   build-android:
     runs-on: ubuntu-latest
     needs: build-windows
     permissions:
       contents: write
-    env:
-      PROJECT_ROOT: Downloads/Test_CID
     steps:
       - uses: actions/checkout@v4
 
@@ -64,19 +59,19 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: ${{ env.PROJECT_ROOT }}
+        working-directory: Downloads/Test_CID
 
       - name: Build frontend & Capacitor sync
         run: npm run build && npx cap sync android
-        working-directory: ${{ env.PROJECT_ROOT }}/packages/frontend
+        working-directory: Downloads/Test_CID/packages/frontend
 
       - name: Assemble debug APK
         run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
-        working-directory: ${{ env.PROJECT_ROOT }}/packages/frontend/android
+        working-directory: Downloads/Test_CID/packages/frontend/android
 
       - name: Upload APK to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp "${{ env.PROJECT_ROOT }}/packages/frontend/android/app/build/outputs/apk/debug/app-debug.apk" Electra-Android.apk
+          cp "Downloads/Test_CID/packages/frontend/android/app/build/outputs/apk/debug/app-debug.apk" Electra-Android.apk
           gh release upload "${{ github.ref_name }}" Electra-Android.apk --clobber
