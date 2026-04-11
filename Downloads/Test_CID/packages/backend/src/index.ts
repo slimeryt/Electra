@@ -10,21 +10,22 @@ import apiRouter from './routes/index';
 import { errorHandler } from './middleware/error';
 import { createSocketServer } from './socket/index';
 import { initBot } from './services/botService';
+import { parseCorsOriginList } from './config/corsOrigins';
 
 const app = express();
 const httpServer = http.createServer(app);
 
 // Middleware
 app.use(helmet({ crossOriginResourcePolicy: false }));
-const allowedOrigins = (process.env.CORS_ORIGIN || '*').split(',').map((o: string) => o.trim());
+const allowedOrigins = parseCorsOriginList();
 app.use(cors({
-  origin: allowedOrigins.includes('*')
+  origin: allowedOrigins === '*'
     ? '*'
     : (origin: string | undefined, cb: (e: Error | null, ok?: boolean) => void) => {
         if (!origin || allowedOrigins.includes(origin)) cb(null, true);
         else cb(new Error('Not allowed by CORS'));
       },
-  credentials: !allowedOrigins.includes('*'),
+  credentials: allowedOrigins !== '*',
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));

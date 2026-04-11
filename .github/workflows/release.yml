@@ -25,6 +25,9 @@ jobs:
         working-directory: Downloads/Test_CID
 
       - name: Build frontend
+        env:
+          # Baked into Electron + must match CI Android build (Capacitor needs absolute API URL).
+          VITE_BACKEND_URL: https://electra-backend.up.railway.app
         run: npm run build
         working-directory: Downloads/Test_CID/packages/frontend
 
@@ -62,6 +65,8 @@ jobs:
         working-directory: Downloads/Test_CID
 
       - name: Build frontend & Capacitor sync
+        env:
+          VITE_BACKEND_URL: https://electra-backend.up.railway.app
         run: npm run build && npx cap sync android
         working-directory: Downloads/Test_CID/packages/frontend
 
