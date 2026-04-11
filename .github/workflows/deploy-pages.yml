@@ -1,4 +1,5 @@
-# Mirror: ../../.github/workflows/deploy-pages.yml (only root workflows run on GitHub)
+# slimeryt.github.io/Electra → gh-pages. GitHub only runs workflows from repo-root .github/workflows/.
+# Source: Downloads/Test_CID/docs
 name: Deploy GitHub Pages
 
 on:
