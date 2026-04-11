@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Hash, Volume2, Megaphone } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -75,10 +76,10 @@ export function ChannelCreateModal({ isOpen, onClose, serverId, defaultCategory,
           </label>
           <div style={{ display: 'flex', gap: 8 }}>
             {([
-              { value: 'text', label: 'Text', icon: '#' },
-              { value: 'voice', label: 'Voice', icon: '🔊' },
-              { value: 'announcement', label: 'Announce', icon: '📢' },
-            ] as { value: ChannelType; label: string; icon: string }[]).map(t => (
+              { value: 'text',         label: 'Text',     icon: <Hash size={14} /> },
+              { value: 'voice',        label: 'Voice',    icon: <Volume2 size={14} /> },
+              { value: 'announcement', label: 'Announce', icon: <Megaphone size={14} /> },
+            ] as { value: ChannelType; label: string; icon: React.ReactNode }[]).map(t => (
               <button
                 key={t.value}
                 onClick={() => setType(t.value)}
@@ -92,7 +93,7 @@ export function ChannelCreateModal({ isOpen, onClose, serverId, defaultCategory,
                   transition: 'var(--transition)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                 }}
               >
-                <span style={{ fontWeight: t.value === 'text' ? 700 : 400 }}>{t.icon}</span> {t.label}
+                {t.icon} {t.label}
               </button>
             ))}
           </div>
