@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { motion } from 'framer-motion';
+import { UserPlus, Check, X } from 'lucide-react';
 import { Button } from './Button';
 import { ProfileCardBody } from './ProfileCard';
 import { dmsApi } from '../../api/dms';
 import { usersApi } from '../../api/users';
+import { useFriendStore } from '../../store/friendStore';
 import type { User, ServerRole } from '../../types/models';
 
 export interface PreviewUser {
@@ -30,18 +33,38 @@ export function UserPreview({ user, anchorRef, onClose, currentUserId }: UserPre
   const popoverRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0, placed: false });
   const [dmLoading, setDmLoading] = useState(false);
+  const [friendLoading, setFriendLoading] = useState(false);
+  const [friendActionLoading, setFriendActionLoading] = useState(false);
+  const [friendError, setFriendError] = useState<string | null>(null);
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const { friends, requests, fetchFriends, fetchRequests, sendRequest, acceptRequest, declineRequest } = useFriendStore();
+
+  const friendState = useMemo(() => {
+    const uid = user.id;
+    const isFriend = friends.some((f) => f.status === 'accepted' && f.user.id === uid);
+    const outgoing = requests.find((r) => r.status === 'pending' && r.direction === 'outgoing' && r.user.id === uid);
+    const incoming = requests.find((r) => r.status === 'pending' && r.direction === 'incoming' && r.user.id === uid);
+    return { isFriend, outgoing, incoming };
+  }, [friends, requests, user.id]);
 
   // Fetch the full profile so we get banner, bio, accent, badges, etc.
   useEffect(() => {
     setLoading(true);
     setProfile(null);
+    setFriendError(null);
     usersApi.getProfile(user.id)
       .then(setProfile)
       .catch(() => setProfile(null))
       .finally(() => setLoading(false));
   }, [user.id]);
+
+  useEffect(() => {
+    if (!currentUserId || user.id === currentUserId) return;
+    void fetchFriends();
+    void fetchRequests();
+  }, [user.id, currentUserId, fetchFriends, fetchRequests]);
 
   // Reposition every time the content height may have changed (on load finish)
   useEffect(() => {
@@ -81,6 +104,49 @@ export function UserPreview({ user, anchorRef, onClose, currentUserId }: UserPre
       onClose();
     } finally {
       setDmLoading(false);
+    }
+  };
+
+  const targetUsername = profile?.username ?? user.username;
+
+  const handleAddFriend = async () => {
+    if (!targetUsername.trim()) return;
+    setFriendError(null);
+    setFriendLoading(true);
+    try {
+      await sendRequest(targetUsername.trim());
+      onClose();
+    } catch (e: unknown) {
+      const msg = axios.isAxiosError(e)
+        ? (e.response?.data as { error?: string } | undefined)?.error
+        : null;
+      setFriendError(msg || 'Could not send friend request');
+    } finally {
+      setFriendLoading(false);
+    }
+  };
+
+  const handleAcceptIncoming = async () => {
+    const id = friendState.incoming?.id;
+    if (!id) return;
+    setFriendActionLoading(true);
+    try {
+      await acceptRequest(id);
+      onClose();
+    } finally {
+      setFriendActionLoading(false);
+    }
+  };
+
+  const handleDeclineIncoming = async () => {
+    const id = friendState.incoming?.id;
+    if (!id) return;
+    setFriendActionLoading(true);
+    try {
+      await declineRequest(id);
+      onClose();
+    } finally {
+      setFriendActionLoading(false);
     }
   };
 
@@ -130,11 +196,59 @@ export function UserPreview({ user, anchorRef, onClose, currentUserId }: UserPre
           </div>
         </div>
       )}
-      {!loading && profile && user.id !== currentUserId && (
-        <div style={{ padding: '0 16px 14px' }}>
+      {!loading && user.id !== currentUserId && (
+        <div style={{ padding: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Button size="sm" onClick={handleDm} isLoading={dmLoading} style={{ width: '100%' }}>
             Message
           </Button>
+
+          {friendState.isFriend ? (
+            <Button size="sm" variant="secondary" disabled style={{ width: '100%' }}>
+              Friends
+            </Button>
+          ) : friendState.incoming ? (
+            <>
+              <Button
+                size="sm"
+                onClick={handleAcceptIncoming}
+                isLoading={friendActionLoading}
+                style={{ width: '100%' }}
+              >
+                <Check size={14} style={{ marginRight: 4 }} />
+                Accept friend request
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleDeclineIncoming}
+                disabled={friendActionLoading}
+                style={{ width: '100%' }}
+              >
+                <X size={14} style={{ marginRight: 4 }} />
+                Decline
+              </Button>
+            </>
+          ) : friendState.outgoing ? (
+            <Button size="sm" variant="secondary" disabled style={{ width: '100%' }}>
+              Request sent
+            </Button>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleAddFriend}
+                isLoading={friendLoading}
+                style={{ width: '100%' }}
+              >
+                <UserPlus size={14} style={{ marginRight: 4 }} />
+                Add friend
+              </Button>
+              {friendError && (
+                <span style={{ fontSize: 11, color: 'var(--danger)', lineHeight: 1.35 }}>{friendError}</span>
+              )}
+            </>
+          )}
         </div>
       )}
     </motion.div>
