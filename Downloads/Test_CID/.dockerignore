@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/release
+**/.turbo
+.git
+.github
+*.md
+packages/desktop/release-build-*
+packages/backend/src/uploads

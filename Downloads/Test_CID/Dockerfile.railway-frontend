@@ -1,0 +1,44 @@
+# Electra web app (Vite SPA) for a second Railway service.
+#
+# Railway — use paths relative to the service root. Do NOT use a leading "/".
+#
+# Recommended (one place defines the build root):
+#   Settings → Root Directory:     Downloads/Test_CID
+#   Settings → Dockerfile path:      Dockerfile.railway-frontend
+#
+# Alternative (repo root as service root — leave Root Directory empty):
+#   Settings → Root Directory:     (empty)
+#   Settings → Dockerfile path:    Downloads/Test_CID/Dockerfile.railway-frontend
+#
+# Wrong (breaks the build):  /Downloads/Test_CID/Dockerfile.railway-frontend
+#
+# Also ensure this file is pushed to GitHub on the branch Railway deploys.
+#
+# Variables: VITE_BACKEND_URL at build time. Backend CORS_ORIGIN must list the frontend URL.
+
+FROM node:20-bookworm-slim AS builder
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY packages/frontend/package.json packages/frontend/
+COPY packages/backend/package.json packages/backend/
+COPY packages/desktop/package.json packages/desktop/
+
+RUN npm ci
+
+COPY App_Icon.jpg ./
+COPY turbo.json ./
+COPY packages/frontend ./packages/frontend
+COPY packages/desktop/package.json ./packages/desktop/package.json
+
+ARG VITE_BACKEND_URL=https://electra-backend.up.railway.app
+ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
+
+RUN npm run build --workspace=@cord/frontend
+
+FROM node:20-bookworm-slim
+WORKDIR /app
+RUN npm install -g serve@14
+COPY --from=builder /app/packages/frontend/dist ./dist
+ENV NODE_ENV=production
+CMD ["sh", "-c", "serve -s dist -l \"${PORT:-3000}\""]

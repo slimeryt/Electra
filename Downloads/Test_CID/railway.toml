@@ -1,0 +1,4 @@
+# Used when the Railway service "Root Directory" is set to: Downloads/Test_CID
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.railway-frontend"
