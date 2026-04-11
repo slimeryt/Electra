@@ -2,6 +2,7 @@ import { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
+import { formatAuthError } from '../lib/formatAuthError';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 
@@ -30,8 +31,8 @@ export default function AuthPage({ mode }: AuthPageProps) {
         await register({ username, display_name: displayName, email, password });
       }
       navigate('/app');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Something went wrong. Please try again.');
+    } catch (err: unknown) {
+      setError(formatAuthError(err));
     } finally {
       setIsLoading(false);
     }
