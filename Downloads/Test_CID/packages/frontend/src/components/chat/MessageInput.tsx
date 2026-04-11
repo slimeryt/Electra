@@ -35,6 +35,8 @@ interface MessageInputProps {
   onSend: (content: string, fileIds: string[], replyToId?: string) => Promise<void>;
   onTyping?: () => void;
   channelId?: string;
+  /** When set (forum thread), typing + send use the forum_post socket room. */
+  forumPostId?: string;
   dmId?: string;
   serverId?: string;
 }
@@ -44,6 +46,7 @@ export function MessageInput({
   onSend,
   onTyping,
   channelId,
+  forumPostId,
   dmId,
   serverId,
 }: MessageInputProps) {
@@ -75,16 +78,19 @@ export function MessageInput({
   const emitTyping = useCallback(() => {
     const socket = getSocket();
     if (channelId) {
-      socket.emit('start_typing', { channel_id: channelId });
+      const payload = forumPostId
+        ? { channel_id: channelId, forum_post_id: forumPostId }
+        : { channel_id: channelId };
+      socket.emit('start_typing', payload);
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => {
-        socket.emit('stop_typing', { channel_id: channelId });
+        socket.emit('stop_typing', payload);
       }, 3000);
     } else if (dmId) {
       socket.emit('start_dm_typing', { dm_id: dmId });
     }
     onTyping?.();
-  }, [channelId, dmId, onTyping]);
+  }, [channelId, forumPostId, dmId, onTyping]);
 
   const handleContentChange = (val: string) => {
     setContent(val);

@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { Message, DmMessage } from '../types/models';
 
+/** Storage key: text channel id, or `forum:${postId}` for forum threads. */
+export function messageThreadKey(message: Pick<Message, 'channel_id' | 'forum_post_id'>): string {
+  return message.forum_post_id ? `forum:${message.forum_post_id}` : message.channel_id;
+}
+
 interface MessageState {
   messagesByChannel: Record<string, Message[]>;
   dmMessages: Record<string, DmMessage[]>;
@@ -39,12 +44,15 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     })),
 
   addMessage: (message) =>
-    set(s => ({
-      messagesByChannel: {
-        ...s.messagesByChannel,
-        [message.channel_id]: [...(s.messagesByChannel[message.channel_id] || []), message],
-      },
-    })),
+    set(s => {
+      const key = messageThreadKey(message);
+      return {
+        messagesByChannel: {
+          ...s.messagesByChannel,
+          [key]: [...(s.messagesByChannel[key] || []), message],
+        },
+      };
+    }),
 
   updateMessage: (messageId, channelId, content, editedAt) =>
     set(s => ({

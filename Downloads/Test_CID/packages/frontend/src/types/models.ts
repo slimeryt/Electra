@@ -37,7 +37,7 @@ export interface Channel {
   id: string;
   server_id: string;
   name: string;
-  type: 'text' | 'voice' | 'announcement';
+  type: 'text' | 'voice' | 'announcement' | 'forum';
   category: string | null;
   position: number;
   topic: string | null;
@@ -80,6 +80,23 @@ export interface Message {
   attachments: FileAttachment[];
   reply_to_id?: string | null;
   reply_to?: ReplyPreview | null;
+  forum_post_id?: string | null;
+}
+
+export interface ForumPost {
+  id: string;
+  channel_id: string;
+  author_id: string;
+  title: string;
+  body: string | null;
+  created_at: number;
+  updated_at: number;
+  author: MessageAuthor | null;
+}
+
+export interface ForumPostListResponse {
+  posts: ForumPost[];
+  has_more: boolean;
 }
 
 export interface DirectMessage {

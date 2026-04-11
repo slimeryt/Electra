@@ -21,12 +21,14 @@ export function useSocketEvents() {
 
     socket.on('message_create', addMessage);
 
-    socket.on('message_update', ({ message_id, content, edited_at, channel_id }: any) => {
-      updateMessage(message_id, channel_id, content, edited_at);
+    socket.on('message_update', ({ message_id, content, edited_at, channel_id, forum_post_id }: any) => {
+      const key = forum_post_id ? `forum:${forum_post_id}` : channel_id;
+      updateMessage(message_id, key, content, edited_at);
     });
 
-    socket.on('message_delete', ({ message_id, channel_id }: any) => {
-      deleteMessage(message_id, channel_id);
+    socket.on('message_delete', ({ message_id, channel_id, forum_post_id }: any) => {
+      const key = forum_post_id ? `forum:${forum_post_id}` : channel_id;
+      deleteMessage(message_id, key);
     });
 
     socket.on('dm_message_create', ({ message }: any) => {

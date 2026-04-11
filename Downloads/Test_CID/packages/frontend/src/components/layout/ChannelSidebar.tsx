@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Hash, Volume2, Megaphone, ChevronDown, ChevronRight,
-  Plus, CheckCheck, Clipboard, Pencil, Trash2, FolderPlus, Mic,
+  Plus, CheckCheck, Clipboard, Pencil, Trash2, FolderPlus, Mic, MessagesSquare,
 } from 'lucide-react';
 import {
   DndContext,
@@ -38,6 +38,7 @@ import { Avatar } from '../ui/Avatar';
 function ChannelIcon({ type }: { type: string }) {
   if (type === 'voice') return <Volume2 size={15} style={{ opacity: 0.6, flexShrink: 0 }} />;
   if (type === 'announcement') return <Megaphone size={15} style={{ opacity: 0.6, flexShrink: 0 }} />;
+  if (type === 'forum') return <MessagesSquare size={15} style={{ opacity: 0.75, color: 'var(--accent)', flexShrink: 0 }} />;
   return <Hash size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />;
 }
 
@@ -228,7 +229,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createModalCategory, setCreateModalCategory] = useState<string | undefined>(undefined);
-  const [createModalType, setCreateModalType] = useState<'text' | 'voice' | 'announcement' | undefined>(undefined);
+  const [createModalType, setCreateModalType] = useState<'text' | 'voice' | 'announcement' | 'forum' | undefined>(undefined);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   // Categories state
@@ -267,7 +268,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
 
   // ─── Context menus ────────────────────────────────────────────────────────
 
-  const openCreate = (type: 'text' | 'voice' | 'announcement', catName?: string) => {
+  const openCreate = (type: 'text' | 'voice' | 'announcement' | 'forum', catName?: string) => {
     setCreateModalType(type);
     setCreateModalCategory(catName);
     setShowCreateModal(true);
@@ -280,6 +281,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
       { label: 'Create Text Channel', icon: <Hash size={14} />, onClick: () => openCreate('text') },
       { label: 'Create Voice Channel', icon: <Mic size={14} />, onClick: () => openCreate('voice') },
       { label: 'Create Announcement', icon: <Megaphone size={14} />, onClick: () => openCreate('announcement') },
+      { label: 'Create Forum Channel', icon: <MessagesSquare size={14} />, onClick: () => openCreate('forum') },
       { divider: true, label: '', onClick: () => {} },
       { label: 'Create Category', icon: <FolderPlus size={14} />, onClick: () => setCreatingCategory(true) },
     ], e.clientX, e.clientY);
@@ -293,6 +295,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
       { label: 'Create Text Channel', icon: <Hash size={14} />, onClick: () => openCreate('text', cat.name) },
       { label: 'Create Voice Channel', icon: <Mic size={14} />, onClick: () => openCreate('voice', cat.name) },
       { label: 'Create Announcement', icon: <Megaphone size={14} />, onClick: () => openCreate('announcement', cat.name) },
+      { label: 'Create Forum Channel', icon: <MessagesSquare size={14} />, onClick: () => openCreate('forum', cat.name) },
       { divider: true, label: '', onClick: () => {} },
       { label: 'Delete Category', icon: <Trash2 size={14} />, danger: true, onClick: async () => {
         if (confirm(`Delete category "${cat.name}"? Channels inside will become uncategorized.`)) {

@@ -35,12 +35,23 @@ CREATE TABLE IF NOT EXISTS channels (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   server_id   TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
   name        TEXT NOT NULL,
-  type        TEXT NOT NULL DEFAULT 'text' CHECK(type IN ('text','voice','announcement')),
+  type        TEXT NOT NULL DEFAULT 'text' CHECK(type IN ('text','voice','announcement','forum')),
   category    TEXT,
   position    INTEGER NOT NULL DEFAULT 0,
   topic       TEXT,
   created_at  INTEGER NOT NULL DEFAULT (unixepoch())
 );
+
+CREATE TABLE IF NOT EXISTS forum_posts (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  channel_id  TEXT NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  author_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title       TEXT NOT NULL,
+  body        TEXT,
+  created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+  updated_at  INTEGER NOT NULL DEFAULT (unixepoch())
+);
+CREATE INDEX IF NOT EXISTS idx_forum_posts_channel_created ON forum_posts(channel_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS files (
   id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -61,10 +72,12 @@ CREATE TABLE IF NOT EXISTS messages (
   content     TEXT,
   type        TEXT NOT NULL DEFAULT 'text' CHECK(type IN ('text','file','system')),
   edited_at   INTEGER,
-  created_at  INTEGER NOT NULL DEFAULT (unixepoch())
+  created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+  forum_post_id TEXT REFERENCES forum_posts(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_channel_created ON messages(channel_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_forum_post_created ON messages(forum_post_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS attachments (
   id         TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),

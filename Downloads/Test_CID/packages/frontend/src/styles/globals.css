@@ -88,11 +88,11 @@ html, body, #root {
   flex-shrink: 0;
 }
 
-/* Grows between server rail and main so DM/channel list fills the middle */
+/* Channel / DM list between server rail and chat — fixed-ish width (don’t grow into chat) */
 .app-shell-channels {
-  flex: 1 1 260px;
+  flex: 0 1 240px;
   min-width: 200px;
-  max-width: min(420px, 40vw);
+  max-width: min(280px, 34vw);
   display: flex;
   flex-direction: column;
 }
@@ -112,9 +112,9 @@ html, body, #root {
 }
 
 .app-shell-members {
-  flex: 0 1 224px;
+  flex: 0 1 200px;
   min-width: 0;
-  max-width: 224px;
+  max-width: 200px;
   display: flex;
   flex-direction: column;
 }
@@ -142,16 +142,16 @@ html, body, #root {
 
   .app-shell:not(.app-shell--phone):not(.app-shell--phone-fs) .app-shell-channels {
     order: 1;
-    flex: 1 1 auto;
-    max-width: min(420px, 100%);
+    flex: 0 1 auto;
+    max-width: min(280px, 100%);
     min-width: min(200px, 45vw);
   }
 
   .app-shell:not(.app-shell--phone):not(.app-shell--phone-fs) .app-shell-members {
     order: 2;
-    flex: 1 1 auto;
-    max-width: min(224px, 100%);
-    min-width: min(180px, 42vw);
+    flex: 0 1 auto;
+    max-width: min(200px, 100%);
+    min-width: min(160px, 42vw);
   }
 
   .app-shell:not(.app-shell--phone):not(.app-shell--phone-fs) .app-shell-main {

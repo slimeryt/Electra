@@ -111,7 +111,11 @@ export function MessageItem({ message, isGrouped = false, isDm = false }: Messag
 
   const handleDelete = () => {
     if (!isDm) {
-      getSocket().emit('delete_message', { message_id: message.id, channel_id: (message as Message).channel_id });
+      getSocket().emit('delete_message', {
+        message_id: message.id,
+        channel_id: (message as Message).channel_id,
+        forum_post_id: (message as Message).forum_post_id ?? undefined,
+      });
     }
   };
 

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Hash, Volume2, Megaphone } from 'lucide-react';
+import { Hash, Volume2, Megaphone, MessagesSquare } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { serversApi } from '../../api/servers';
 import { useChannelStore } from '../../store/channelStore';
 
-type ChannelType = 'text' | 'voice' | 'announcement';
+type ChannelType = 'text' | 'voice' | 'announcement' | 'forum';
 
 interface ChannelCreateModalProps {
   isOpen: boolean;
@@ -74,17 +74,18 @@ export function ChannelCreateModal({ isOpen, onClose, serverId, defaultCategory,
           }}>
             Channel Type
           </label>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {([
               { value: 'text',         label: 'Text',     icon: <Hash size={14} /> },
               { value: 'voice',        label: 'Voice',    icon: <Volume2 size={14} /> },
               { value: 'announcement', label: 'Announce', icon: <Megaphone size={14} /> },
+              { value: 'forum',        label: 'Forum',    icon: <MessagesSquare size={14} /> },
             ] as { value: ChannelType; label: string; icon: React.ReactNode }[]).map(t => (
               <button
                 key={t.value}
                 onClick={() => setType(t.value)}
                 style={{
-                  flex: 1, padding: '10px 4px',
+                  flex: '1 1 calc(50% - 4px)', minWidth: 72, padding: '10px 4px',
                   borderRadius: 'var(--radius-md)',
                   border: `1px solid ${type === t.value ? 'var(--accent)' : 'var(--border)'}`,
                   background: type === t.value ? 'rgba(88,101,242,0.12)' : 'var(--bg-overlay)',
@@ -103,7 +104,7 @@ export function ChannelCreateModal({ isOpen, onClose, serverId, defaultCategory,
           label="Channel Name"
           value={name}
           onChange={e => setName(e.target.value)}
-          placeholder={type === 'text' ? 'general' : 'General Voice'}
+          placeholder={type === 'voice' ? 'General Voice' : type === 'forum' ? 'community-forum' : 'general'}
           onKeyDown={e => e.key === 'Enter' && handleCreate()}
           autoFocus
         />

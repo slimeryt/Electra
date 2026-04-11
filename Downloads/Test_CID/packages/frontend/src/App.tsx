@@ -5,7 +5,8 @@ import { useSocketEvents } from './hooks/useSocket';
 import { ContextMenuProvider } from './context/ContextMenuContext';
 import AuthPage from './pages/AuthPage';
 import MainLayout from './pages/MainLayout';
-import ChannelPage from './pages/ChannelPage';
+import ChannelViewRouter from './pages/ChannelViewRouter';
+import ForumPostPage from './pages/ForumPostPage';
 import VoiceChannelPage from './pages/VoiceChannelPage';
 import DMPage from './pages/DMPage';
 import UserSettingsPage from './pages/UserSettingsPage';
@@ -80,7 +81,8 @@ export default function App() {
             </AuthGate>
           }>
             <Route index element={<WelcomePage />} />
-          <Route path="servers/:serverId/channels/:channelId" element={<ChannelPage />} />
+          <Route path="servers/:serverId/channels/:channelId/posts/:postId" element={<ForumPostPage />} />
+          <Route path="servers/:serverId/channels/:channelId" element={<ChannelViewRouter />} />
             <Route path="servers/:serverId/voice/:channelId" element={<VoiceChannelPage />} />
             <Route path="servers/:serverId/settings" element={<ServerSettingsPage />} />
             <Route path="dms/:dmId" element={<DMPage />} />

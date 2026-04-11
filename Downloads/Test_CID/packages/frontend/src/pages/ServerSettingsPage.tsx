@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Settings, Users, Hash, Link, AlertTriangle, ChevronLeft, Volume2, Megaphone, Trash2, Shield, Camera, Check, Bot } from 'lucide-react';
+import { Settings, Users, Hash, Link, AlertTriangle, ChevronLeft, Volume2, Megaphone, MessagesSquare, Trash2, Shield, Camera, Check, Bot } from 'lucide-react';
 import { useServerStore } from '../store/serverStore';
 import { useChannelStore } from '../store/channelStore';
 import { useAuthStore } from '../store/authStore';
@@ -428,7 +428,7 @@ function ChannelsTab({ serverId }: { serverId: string }) {
                 background: 'var(--bg-overlay)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
               }}>
                 <span style={{ color: 'var(--text-muted)', width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {ch.type === 'voice' ? <Volume2 size={15} /> : ch.type === 'announcement' ? <Megaphone size={15} /> : <Hash size={15} />}
+                  {ch.type === 'voice' ? <Volume2 size={15} /> : ch.type === 'announcement' ? <Megaphone size={15} /> : ch.type === 'forum' ? <MessagesSquare size={15} /> : <Hash size={15} />}
                 </span>
                 <span style={{ flex: 1, fontSize: 14, color: 'var(--text-primary)' }}>{ch.name}</span>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', padding: '2px 8px', background: 'var(--bg-hover)', borderRadius: 'var(--radius-full)' }}>{ch.type}</span>

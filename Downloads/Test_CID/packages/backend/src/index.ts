@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import path from 'path';
 import fs from 'fs';
 import { runMigrations } from './db/migrations';
+import { runIncrementalMigrations } from './db/incrementalMigrations';
 import apiRouter from './routes/index';
 import { errorHandler } from './middleware/error';
 import { createSocketServer } from './socket/index';
@@ -46,6 +47,7 @@ app.use(errorHandler);
 
 // Init DB + start server
 runMigrations();
+runIncrementalMigrations();
 initBot();
 const port = parseInt(process.env.PORT || '3001', 10);
 const host = process.env.HOST || '0.0.0.0';
