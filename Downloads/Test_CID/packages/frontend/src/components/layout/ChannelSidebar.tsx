@@ -493,7 +493,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
     <div style={{
       width: '100%', height: '100%',
       background: 'var(--bg-elevated)',
-      borderRadius: 'var(--radius-lg)',
+      borderRadius: 'var(--radius-xl)',
       boxShadow: 'var(--shadow-panel)',
       display: 'flex', flexDirection: 'column',
       flexShrink: 0, overflow: 'hidden',

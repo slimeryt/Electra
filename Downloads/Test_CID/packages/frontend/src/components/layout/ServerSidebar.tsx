@@ -176,7 +176,7 @@ export function ServerSidebar() {
     <div style={{
       width: 68,
       background: 'var(--bg-elevated)',
-      borderRadius: 'var(--radius-lg)',
+      borderRadius: 'var(--radius-xl)',
       boxShadow: 'var(--shadow-panel)',
       display: 'flex',
       flexDirection: 'column',

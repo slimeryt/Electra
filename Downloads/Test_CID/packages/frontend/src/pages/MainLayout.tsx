@@ -50,7 +50,7 @@ export default function MainLayout() {
         height: '100%',
         minHeight: 200,
         background: 'var(--bg-elevated)',
-        borderRadius: layoutPhoneNav ? 0 : 'var(--radius-lg)',
+        borderRadius: layoutPhoneNav ? 0 : 'var(--radius-xl)',
         boxShadow: layoutPhoneNav ? 'none' : 'var(--shadow-panel)',
         flexShrink: 0,
         display: 'flex',
@@ -173,6 +173,10 @@ export default function MainLayout() {
     >
       {layoutPhoneNav && (
         <>
+          {/* Server rail always visible on phone (not in drawer); hidden on settings/discover via layoutPhoneNav */}
+          <div className="app-shell-rail-mobile-perm">
+            <ServerSidebar />
+          </div>
           {(leftOpen || membersOpen) && (
             <button
               type="button"
@@ -184,9 +188,6 @@ export default function MainLayout() {
           <div
             className={clsx('mobile-nav-drawer mobile-nav-drawer--left', leftOpen && 'is-open')}
           >
-            <div className="app-shell-rail mobile-nav-rail">
-              <ServerSidebar />
-            </div>
             {channelColumn}
           </div>
           <div
@@ -218,7 +219,7 @@ export default function MainLayout() {
         className="app-shell-main"
         style={{
           background: layoutPhoneNav ? '#313338' : 'var(--bg-elevated)',
-          borderRadius: layoutPhoneNav || (isPhone && isFullscreen) ? 0 : 'var(--radius-lg)',
+          borderRadius: layoutPhoneNav || (isPhone && isFullscreen) ? 0 : 'var(--radius-xl)',
           boxShadow: layoutPhoneNav ? 'none' : 'var(--shadow-panel)',
         }}
       >
