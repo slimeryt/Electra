@@ -119,6 +119,10 @@ export function ServerSidebar() {
     setActiveServer(serverId);
     if (!getChannels(serverId).length) {
       await fetchChannels(serverId);
+    } else {
+      useChannelStore.setState((s) => ({
+        channelListReadyByServer: { ...s.channelListReadyByServer, [serverId]: true },
+      }));
     }
     const channels = getChannels(serverId);
     const firstText = channels.find(c => c.type === 'text');

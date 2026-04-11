@@ -4,7 +4,7 @@ import { MessageList } from '../components/chat/MessageList';
 import { MessageInput } from '../components/chat/MessageInput';
 import { useMessages } from '../hooks/useMessages';
 import { useChannelStore } from '../store/channelStore';
-import { getSocket } from '../socket/client';
+import { getSocket, emitWithAck } from '../socket/client';
 import { usePhoneLayout } from '../hooks/useMediaQuery';
 
 interface TypingUser {
@@ -61,12 +61,16 @@ export default function ChannelPage() {
   }, [channelId]);
 
   const handleSend = (content: string, fileIds: string[], replyToId?: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      getSocket().emit('send_message', { channel_id: channelId, content, file_ids: fileIds, reply_to_id: replyToId }, (res: any) => {
-        if (res?.ok) resolve();
-        else reject(new Error(res?.error || 'Failed to send'));
-      });
-    });
+    if (!channelId) return Promise.reject(new Error('No channel'));
+    return (async () => {
+      const res = (await emitWithAck(getSocket(), 'send_message', {
+        channel_id: channelId,
+        content,
+        file_ids: fileIds,
+        reply_to_id: replyToId,
+      })) as { ok?: boolean; error?: string };
+      if (!res?.ok) throw new Error(res?.error || 'Failed to send');
+    })();
   };
 
   return (

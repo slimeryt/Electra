@@ -7,7 +7,7 @@ import { usePhoneLayout } from '../hooks/useMediaQuery';
 import { useDmMessages } from '../hooks/useMessages';
 import { dmsApi } from '../api/dms';
 import { useAuthStore } from '../store/authStore';
-import { getSocket } from '../socket/client';
+import { getSocket, emitWithAck } from '../socket/client';
 import type { DirectMessage } from '../types/models';
 
 interface TypingUser {
@@ -52,12 +52,16 @@ export default function DMPage() {
   }, [dmId]);
 
   const handleSend = (content: string, fileIds: string[], replyToId?: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      getSocket().emit('send_dm', { dm_id: dmId, content, file_ids: fileIds, reply_to_id: replyToId }, (res: any) => {
-        if (res?.ok) resolve();
-        else reject(new Error(res?.error || 'Failed to send'));
-      });
-    });
+    if (!dmId) return Promise.reject(new Error('No conversation'));
+    return (async () => {
+      const res = (await emitWithAck(getSocket(), 'send_dm', {
+        dm_id: dmId,
+        content,
+        file_ids: fileIds,
+        reply_to_id: replyToId,
+      })) as { ok?: boolean; error?: string };
+      if (!res?.ok) throw new Error(res?.error || 'Failed to send');
+    })();
   };
 
   const isGroup = !!dm?.is_group;

@@ -8,20 +8,22 @@ import ForumChannelPage from './ForumChannelPage';
 export default function ChannelViewRouter() {
   const { serverId, channelId } = useParams<{ serverId: string; channelId: string }>();
   const fetchChannels = useChannelStore((s) => s.fetchChannels);
-  const listReady = useChannelStore((s) => (serverId ? s.channelListReadyByServer[serverId] : false));
+  const fetchDone = useChannelStore((s) => (serverId ? !!s.channelListReadyByServer[serverId] : false));
   const channels = useChannelStore((s) => (serverId ? s.channelsByServer[serverId] ?? [] : []));
   const channel = channels.find((c) => c.id === channelId);
+  /** Cached channel row is enough to route (forum vs text); avoids hang when fetch was skipped but list exists. */
+  const canRoute = fetchDone || !!channel;
 
   useEffect(() => {
-    if (!serverId || listReady) return;
+    if (!serverId || fetchDone) return;
     void fetchChannels(serverId);
-  }, [serverId, listReady, fetchChannels]);
+  }, [serverId, fetchDone, fetchChannels]);
 
   if (!serverId || !channelId) {
     return null;
   }
 
-  if (!listReady) {
+  if (!canRoute) {
     return (
       <div style={{ padding: 24, color: 'var(--text-muted)', fontSize: 14 }}>
         Loading channel…

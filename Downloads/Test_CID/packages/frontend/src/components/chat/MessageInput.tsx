@@ -142,6 +142,7 @@ export function MessageInput({
     if (!text && fileIds.length === 0) return;
     const savedContent = text;
     const savedReplyId = replyTo?.id;
+    const savedPending = pendingFiles;
     setContent('');
     setPendingFiles([]);
     setMentionQuery(null);
@@ -151,19 +152,27 @@ export function MessageInput({
       await onSend(savedContent, fileIds, savedReplyId);
     } catch {
       setContent(savedContent);
+      setPendingFiles(savedPending);
     }
   };
 
+  /** Empty query after `@` lists everyone; Enter must still send unless user typed at least one filter char. */
+  const mentionKeyboardActive =
+    mentionQuery !== null && mentionQuery.length > 0 && suggestions.length > 0;
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (mentionQuery !== null && suggestions.length > 0) {
+    if (e.key === 'Escape' && mentionQuery !== null) {
+      setMentionQuery(null);
+      return;
+    }
+    if (mentionKeyboardActive) {
       if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex(i => Math.min(i + 1, suggestions.length - 1)); return; }
       if (e.key === 'ArrowUp')   { e.preventDefault(); setMentionIndex(i => Math.max(i - 1, 0)); return; }
-      if (e.key === 'Tab' || (e.key === 'Enter' && mentionQuery !== null)) {
+      if (e.key === 'Tab' || e.key === 'Enter') {
         e.preventDefault();
         insertMention(suggestions[mentionIndex]);
         return;
       }
-      if (e.key === 'Escape') { setMentionQuery(null); return; }
     }
     if (e.key === 'Enter' && !e.shiftKey) {
       if (e.nativeEvent.isComposing) return;

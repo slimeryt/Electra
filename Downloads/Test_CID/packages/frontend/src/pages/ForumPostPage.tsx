@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessagesSquare, Pencil, Trash2 } from 'lucide-react';
-import { getSocket } from '../socket/client';
+import { getSocket, emitWithAck } from '../socket/client';
 import { channelsApi } from '../api/channels';
 import type { ForumPost } from '../types/models';
 import { useChannelStore } from '../store/channelStore';
@@ -149,22 +149,17 @@ export default function ForumPostPage() {
   };
 
   const handleSend = (content: string, fileIds: string[], replyToId?: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      getSocket().emit(
-        'send_message',
-        {
-          channel_id: channelId,
-          content,
-          file_ids: fileIds,
-          reply_to_id: replyToId,
-          forum_post_id: postId,
-        },
-        (res: any) => {
-          if (res?.ok) resolve();
-          else reject(new Error(res?.error || 'Failed to send'));
-        },
-      );
-    });
+    if (!channelId || !postId) return Promise.reject(new Error('Missing thread'));
+    return (async () => {
+      const res = (await emitWithAck(getSocket(), 'send_message', {
+        channel_id: channelId,
+        content,
+        file_ids: fileIds,
+        reply_to_id: replyToId,
+        forum_post_id: postId,
+      })) as { ok?: boolean; error?: string };
+      if (!res?.ok) throw new Error(res?.error || 'Failed to send');
+    })();
   };
 
   if (postLoadErr) {
