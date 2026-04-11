@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Hash, Volume2, Megaphone, ChevronDown, ChevronRight, Plus, CheckCheck, Clipboard, Pencil, Trash2, FolderPlus } from 'lucide-react';
+import { Hash, Volume2, Megaphone, ChevronDown, ChevronRight, Plus, CheckCheck, Clipboard, Pencil, Trash2, FolderPlus, Mic } from 'lucide-react';
 import { useChannelStore } from '../../store/channelStore';
 import { useServerStore } from '../../store/serverStore';
 import { useAuthStore } from '../../store/authStore';
@@ -28,6 +28,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createModalCategory, setCreateModalCategory] = useState<string | undefined>(undefined);
+  const [createModalType, setCreateModalType] = useState<'text' | 'voice' | 'announcement' | undefined>(undefined);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   // Categories state
@@ -160,6 +161,44 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
     setDragOverChannelId(null);
   };
 
+  // ─── Sidebar / category context menus ────────────────────────────────────────
+
+  const openCreate = (type: 'text' | 'voice' | 'announcement', catName?: string) => {
+    setCreateModalType(type);
+    setCreateModalCategory(catName);
+    setShowCreateModal(true);
+  };
+
+  const handleSidebarContextMenu = (e: React.MouseEvent) => {
+    if (!isAdminOrOwner) return;
+    e.preventDefault();
+    show([
+      { label: 'Create Text Channel', icon: <Hash size={14} />, onClick: () => openCreate('text') },
+      { label: 'Create Voice Channel', icon: <Mic size={14} />, onClick: () => openCreate('voice') },
+      { label: 'Create Announcement', icon: <Megaphone size={14} />, onClick: () => openCreate('announcement') },
+      { divider: true, label: '', onClick: () => {} },
+      { label: 'Create Category', icon: <FolderPlus size={14} />, onClick: () => setCreatingCategory(true) },
+    ], e.clientX, e.clientY);
+  };
+
+  const handleCategoryContextMenu = (e: React.MouseEvent, cat: ServerCategory) => {
+    if (!isAdminOrOwner) return;
+    e.preventDefault();
+    e.stopPropagation();
+    show([
+      { label: 'Create Text Channel', icon: <Hash size={14} />, onClick: () => openCreate('text', cat.name) },
+      { label: 'Create Voice Channel', icon: <Mic size={14} />, onClick: () => openCreate('voice', cat.name) },
+      { label: 'Create Announcement', icon: <Megaphone size={14} />, onClick: () => openCreate('announcement', cat.name) },
+      { divider: true, label: '', onClick: () => {} },
+      { label: 'Delete Category', icon: <Trash2 size={14} />, danger: true, onClick: async () => {
+        if (confirm(`Delete category "${cat.name}"? Channels inside will become uncategorized.`)) {
+          await categoriesApi.delete(serverId, cat.id);
+          setCategories(prev => prev.filter(c => c.id !== cat.id));
+        }
+      }},
+    ], e.clientX, e.clientY);
+  };
+
   // ─── Channel context menu ────────────────────────────────────────────────────
 
   const handleChannelContextMenu = (e: React.MouseEvent, channel: Channel) => {
@@ -270,7 +309,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
       </div>
 
       {/* Channel list */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
+      <div onContextMenu={handleSidebarContextMenu} style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
 
         {/* New category input */}
         {creatingCategory && (
@@ -319,6 +358,7 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
               {/* Category header */}
               <div
                 onClick={() => setCollapsed(s => ({ ...s, [cat.id]: !s[cat.id] }))}
+                onContextMenu={e => handleCategoryContextMenu(e, cat)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: '10px 8px 4px 14px',
@@ -450,9 +490,10 @@ export function ChannelSidebar({ serverId }: { serverId: string }) {
       {isAdminOrOwner && (
         <ChannelCreateModal
           isOpen={showCreateModal}
-          onClose={() => { setShowCreateModal(false); setCreateModalCategory(undefined); }}
+          onClose={() => { setShowCreateModal(false); setCreateModalCategory(undefined); setCreateModalType(undefined); }}
           serverId={serverId}
           defaultCategory={createModalCategory}
+          defaultType={createModalType}
         />
       )}
     </div>

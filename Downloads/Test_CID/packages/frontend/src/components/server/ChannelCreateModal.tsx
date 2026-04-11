@@ -5,27 +5,31 @@ import { Button } from '../ui/Button';
 import { serversApi } from '../../api/servers';
 import { useChannelStore } from '../../store/channelStore';
 
-type ChannelType = 'text' | 'voice';
+type ChannelType = 'text' | 'voice' | 'announcement';
 
 interface ChannelCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   serverId: string;
   defaultCategory?: string;
+  defaultType?: ChannelType;
 }
 
-export function ChannelCreateModal({ isOpen, onClose, serverId, defaultCategory }: ChannelCreateModalProps) {
+export function ChannelCreateModal({ isOpen, onClose, serverId, defaultCategory, defaultType }: ChannelCreateModalProps) {
   const [name, setName] = useState('');
-  const [type, setType] = useState<ChannelType>('text');
+  const [type, setType] = useState<ChannelType>(defaultType || 'text');
   const [category, setCategory] = useState(defaultCategory || 'Text Channels');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { addChannel } = useChannelStore();
 
-  // Sync category when defaultCategory changes (modal re-opens for different category)
+  // Sync category/type when modal re-opens
   useEffect(() => {
-    if (isOpen) setCategory(defaultCategory || 'Text Channels');
-  }, [isOpen, defaultCategory]);
+    if (isOpen) {
+      setCategory(defaultCategory || 'Text Channels');
+      setType(defaultType || 'text');
+    }
+  }, [isOpen, defaultCategory, defaultType]);
 
   const handleClose = () => {
     setName('');
@@ -70,33 +74,25 @@ export function ChannelCreateModal({ isOpen, onClose, serverId, defaultCategory 
             Channel Type
           </label>
           <div style={{ display: 'flex', gap: 8 }}>
-            {(['text', 'voice'] as ChannelType[]).map(t => (
+            {([
+              { value: 'text', label: 'Text', icon: '#' },
+              { value: 'voice', label: 'Voice', icon: '🔊' },
+              { value: 'announcement', label: 'Announce', icon: '📢' },
+            ] as { value: ChannelType; label: string; icon: string }[]).map(t => (
               <button
-                key={t}
-                onClick={() => setType(t)}
+                key={t.value}
+                onClick={() => setType(t.value)}
                 style={{
-                  flex: 1,
-                  padding: '10px 8px',
+                  flex: 1, padding: '10px 4px',
                   borderRadius: 'var(--radius-md)',
-                  border: `1px solid ${type === t ? 'var(--accent)' : 'var(--border)'}`,
-                  background: type === t ? 'rgba(88,101,242,0.12)' : 'var(--bg-overlay)',
-                  color: type === t ? 'var(--accent)' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontFamily: 'inherit',
-                  fontWeight: 500,
-                  transition: 'var(--transition)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
+                  border: `1px solid ${type === t.value ? 'var(--accent)' : 'var(--border)'}`,
+                  background: type === t.value ? 'rgba(88,101,242,0.12)' : 'var(--bg-overlay)',
+                  color: type === t.value ? 'var(--accent)' : 'var(--text-secondary)',
+                  cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', fontWeight: 500,
+                  transition: 'var(--transition)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                 }}
               >
-                {t === 'text' ? (
-                  <><span style={{ fontWeight: 700 }}>#</span> Text</>
-                ) : (
-                  <><span>🔊</span> Voice</>
-                )}
+                <span style={{ fontWeight: t.value === 'text' ? 700 : 400 }}>{t.icon}</span> {t.label}
               </button>
             ))}
           </div>
